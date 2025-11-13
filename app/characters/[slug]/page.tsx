@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 
 export default function CharacterDetailPage() {
@@ -9,6 +9,14 @@ export default function CharacterDetailPage() {
 
   const [message, setMessage] = useState("");
   const [showPayment, setShowPayment] = useState(false);
+
+  // 💥 FIXES BACK BUTTON CACHE BUG
+  useEffect(() => {
+    const nav = performance.getEntriesByType("navigation")[0];
+    if (nav && (nav as any).type === "back_forward") {
+      window.location.reload();
+    }
+  }, []);
 
   const characters = [
     { name: "Santa Claus", slug: "santa" },
@@ -19,27 +27,37 @@ export default function CharacterDetailPage() {
 
   const character = characters.find((c) => c.slug === slug) || characters[0];
 
+  // Load saved message on mount
+  useEffect(() => {
+    const savedMessage = localStorage.getItem("user_message");
+    const savedCharacter = localStorage.getItem("selected_character");
+
+    if (savedCharacter === slug && savedMessage) {
+      setMessage(savedMessage);
+    }
+  }, [slug]);
+
+  // Save message live
+  useEffect(() => {
+    if (message.trim().length > 0) {
+      localStorage.setItem("user_message", message);
+      localStorage.setItem("selected_character", character.slug);
+    }
+  }, [message, character.slug]);
+
   function handleGenerate() {
-    if (!message) {
+    if (!message.trim()) {
       alert("Write a message first");
       return;
     }
-
-    localStorage.setItem("user_message", message);
-    localStorage.setItem("selected_character", character.slug);
-
     setShowPayment(true);
   }
 
   async function redirectToStripe() {
     const res = await fetch("/api/stripe/checkout", { method: "POST" });
     const data = await res.json();
-
-    if (data.url) {
-      window.location.href = data.url;
-    } else {
-      alert("Stripe error");
-    }
+    if (data.url) window.location.href = data.url;
+    else alert("Stripe error");
   }
 
   return (

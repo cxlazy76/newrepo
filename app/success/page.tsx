@@ -71,6 +71,14 @@ export default function SuccessPage() {
     start();
   }, []);
 
+  // 💥 Clears message ONLY after successful video generation
+  useEffect(() => {
+    if (videoUrl) {
+      localStorage.removeItem("user_message");
+      localStorage.removeItem("selected_character");
+    }
+  }, [videoUrl]);
+
   async function prepareBlob() {
     if (!videoUrl) return null;
 
@@ -155,45 +163,17 @@ export default function SuccessPage() {
         style={{ maxWidth: "100%", marginTop: 20 }}
       />
 
-      <button onClick={downloadVideo}>Download Video</button>
-      <button onClick={shareVideo}>Share</button>
-      <button onClick={copyLink}>{copied ? "Copied!" : "Copy Link"}</button>
-
+      {/* Download button — separate line */}
       <div style={{ marginTop: 20 }}>
-        <a
-          href={`https://wa.me/?text=${encodeURIComponent(videoUrl)}`}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          WhatsApp
-        </a>
-        <br />
+        <button onClick={downloadVideo}>Download Video</button>
+      </div>
 
-        <a
-          href={`https://t.me/share/url?url=${encodeURIComponent(videoUrl)}`}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Telegram
-        </a>
-        <br />
-
-        <a
-          href={`mailto:?subject=My Video&body=${encodeURIComponent(videoUrl)}`}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Gmail
-        </a>
-        <br />
-
-        <a
-          href={videoUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Open in new tab
-        </a>
+      {/* Share + Copy — separate line */}
+      <div style={{ marginTop: 20 }}>
+        <button onClick={shareVideo}>Share Video</button>
+        <button onClick={copyLink} style={{ marginLeft: 10 }}>
+          {copied ? "Copied!" : "Copy Link"}
+        </button>
       </div>
     </main>
   );
