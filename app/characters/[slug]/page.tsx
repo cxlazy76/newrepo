@@ -1,0 +1,74 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter, useParams } from "next/navigation";
+
+export default function CharacterDetailPage() {
+  const router = useRouter();
+  const { slug } = useParams();
+
+  const [message, setMessage] = useState("");
+  const [showPayment, setShowPayment] = useState(false);
+
+  const characters = [
+    { name: "Santa Claus", slug: "santa" },
+    { name: "Alien", slug: "alien" },
+    { name: "Monk", slug: "monk" },
+    { name: "Tribal Man", slug: "tribal-man" },
+  ];
+
+  const character = characters.find((c) => c.slug === slug) || characters[0];
+
+  function handleGenerate() {
+    if (!message) {
+      alert("Write a message first");
+      return;
+    }
+
+    localStorage.setItem("user_message", message);
+    localStorage.setItem("selected_character", character.slug);
+
+    setShowPayment(true);
+  }
+
+  async function redirectToStripe() {
+    const res = await fetch("/api/stripe/checkout", { method: "POST" });
+    const data = await res.json();
+
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      alert("Stripe error");
+    }
+  }
+
+  return (
+    <main>
+      <button onClick={() => router.push("/characters")}>Back</button>
+
+      <h1>Step 2 of 2</h1>
+      <h2>Generate video for: {character.name}</h2>
+
+      <textarea
+        value={message}
+        onChange={(e) => setMessage(e.target.value)}
+        maxLength={100}
+      />
+      <p>{message.length}/100</p>
+
+      <button onClick={handleGenerate}>Generate video</button>
+
+      {showPayment && (
+        <div onClick={() => setShowPayment(false)}>
+          <div onClick={(e) => e.stopPropagation()}>
+            <h2>Complete your payment</h2>
+            <p>$3.99 per video</p>
+
+            <button onClick={redirectToStripe}>Pay now</button>
+            <button onClick={() => setShowPayment(false)}>Cancel</button>
+          </div>
+        </div>
+      )}
+    </main>
+  );
+}
