@@ -3,25 +3,24 @@
 import { useEffect, useState } from "react";
 
 export default function SuccessPage() {
-  const [status, setStatus] = useState("loading");
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
 
-  // 1️⃣ Read session_id from URL
+  // Read session_id from the URL on first render
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const id = params.get("session_id");
+    const sessionId = params.get("session_id");
 
-    if (!id) {
+    if (!sessionId) {
       setStatus("error");
       return;
     }
 
-    // Start polling
-    pollStatus(id);
+    pollStatus(sessionId);
   }, []);
 
-  // 2️⃣ Poll /api/video-status every 2 seconds
+  // Poll the backend every 2 seconds
   async function pollStatus(sessionId: string) {
     try {
       const res = await fetch(`/api/video-status?session_id=${sessionId}`);
@@ -31,21 +30,21 @@ export default function SuccessPage() {
         setVideoUrl(data.videoUrl);
         setStatus("ready");
 
-        // Clear prompt from localStorage
+        // Clear prompt from localStorage — only after success
         localStorage.removeItem("user_message");
         localStorage.removeItem("selected_character");
 
         return;
       }
 
-      // Still processing → continue polling
+      // Not ready → continue polling
       setTimeout(() => pollStatus(sessionId), 2000);
-    } catch (err) {
+    } catch (error) {
       setStatus("error");
     }
   }
 
-  // 3️⃣ Prepare blob
+  // Convert remote video into a Blob/URL for download + share
   async function prepareBlob() {
     if (!videoUrl) return null;
 
@@ -55,7 +54,7 @@ export default function SuccessPage() {
     return { blob, url };
   }
 
-  // 4️⃣ Download
+  // Download video locally
   async function downloadVideo() {
     const prepared = await prepareBlob();
     if (!prepared) return;
@@ -68,12 +67,14 @@ export default function SuccessPage() {
     document.body.removeChild(a);
   }
 
-  // 5️⃣ Share
+  // Share video (iPhone / Android supported)
   async function shareVideo() {
     const prepared = await prepareBlob();
     if (!prepared) return;
 
-    const file = new File([prepared.blob], "video.mp4", { type: "video/mp4" });
+    const file = new File([prepared.blob], "video.mp4", {
+      type: "video/mp4",
+    });
 
     if (navigator.share && navigator.canShare?.({ files: [file] })) {
       try {
@@ -82,14 +83,16 @@ export default function SuccessPage() {
           text: "Check out this video!",
           files: [file],
         });
-      } catch (e) {}
+      } catch (e) {
+        console.log("Share cancelled");
+      }
       return;
     }
 
-    alert("Sharing not supported on this device");
+    alert("Sharing is not supported on this device.");
   }
 
-  // 6️⃣ Copy Link
+  // Copy video link
   async function copyLink() {
     if (!videoUrl) return;
     await navigator.clipboard.writeText(videoUrl);
@@ -97,13 +100,15 @@ export default function SuccessPage() {
     setTimeout(() => setCopied(false), 1500);
   }
 
-  // ========== UI STATES ==========
+  // ---------------------------------
+  // UI States
+  // ---------------------------------
 
   if (status === "error") {
     return (
       <main>
         <h1>Error getting your video</h1>
-        <p>Try checking your email or contact support.</p>
+        <p>Something went wrong. Please try again or contact support.</p>
       </main>
     );
   }
@@ -126,13 +131,19 @@ export default function SuccessPage() {
     );
   }
 
-  // ========== FINAL UI ==========
+  // ---------------------------------
+  // FINAL UI
+  // ---------------------------------
 
   return (
     <main>
       <h1>Your video is ready!</h1>
 
-      <video src={videoUrl} controls style={{ maxWidth: "100%", marginTop: 20 }} />
+      <video
+        src={videoUrl}
+        controls
+        style={{ maxWidth: "100%", marginTop: 20 }}
+      />
 
       <div style={{ marginTop: 20 }}>
         <button onClick={downloadVideo}>Download Video</button>
