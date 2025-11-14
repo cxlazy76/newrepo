@@ -22,9 +22,9 @@ export async function GET(req: Request) {
       .from("videos")
       .select("*")
       .eq("session_id", session_id)
-      .single();
+      .maybeSingle(); // <-- safer than .single()
 
-    if (error || !data) {
+    if (!data || error) {
       return NextResponse.json(
         { error: "Not found" },
         { status: 404 }
@@ -38,10 +38,8 @@ export async function GET(req: Request) {
       character: data.character,
       videoUrl: data.video_url,
     });
-  } catch (err: any) {
-    return NextResponse.json(
-      { error: err?.message ?? "Unknown error" },
-      { status: 500 }
-    );
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : "Unknown error";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }

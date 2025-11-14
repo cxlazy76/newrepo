@@ -3,10 +3,10 @@ import { createClient } from "@supabase/supabase-js";
 
 export async function POST(req: Request) {
   try {
-    const { session_id, video_url } = await req.json();
+    const { session_id, message, character } = await req.json();
 
-    if (!session_id || !video_url) {
-      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    if (!session_id) {
+      return NextResponse.json({ error: "Missing session_id" }, { status: 400 });
     }
 
     const supabase = createClient(
@@ -14,13 +14,13 @@ export async function POST(req: Request) {
       process.env.SUPABASE_SERVICE_ROLE!
     );
 
-    await supabase
-      .from("videos")
-      .update({
-        status: "ready",
-        video_url
-      })
-      .eq("session_id", session_id);
+    await supabase.from("videos").insert({
+      session_id,
+      message,
+      character,
+      status: "processing",
+      video_url: null
+    });
 
     return NextResponse.json({ ok: true });
   } catch (err: unknown) {
