@@ -45,16 +45,13 @@ export async function POST(req: Request) {
     });
 
     // 2. Insert “pending” row in Supabase
-const insertResult = await supabase.from("videos").insert({
-  session_id: session.id,
-  message,
-  character,
-  status: "pending",
-  video_url: null,
-});
-
-console.log("SUPABASE INSERT RESULT:", insertResult);
-
+    await supabase.from("videos").insert({
+      session_id: session.id,
+      message,
+      character,
+      status: "pending",
+      video_url: null,
+    });
 
     // 3. Redirect to Stripe
     return NextResponse.json({ url: session.url });
