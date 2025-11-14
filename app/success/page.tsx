@@ -3,107 +3,73 @@
 import { useEffect, useState } from "react";
 
 export default function SuccessPage() {
-  const [loading, setLoading] = useState(true);
+  const [status, setStatus] = useState("loading");
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [blobUrl, setBlobUrl] = useState<string | null>(null);
 
+  // 1️⃣ Read session_id from URL
   useEffect(() => {
-    const message = localStorage.getItem("user_message");
-    const character = localStorage.getItem("selected_character");
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("session_id");
 
-    async function start() {
-      try {
-        const res = await fetch("/api/trigger", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message, character }),
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) {
-          setError(data?.error || "Trigger failed");
-          setLoading(false);
-          return;
-        }
-
-        if (data.videoUrl && data.ready) {
-          setVideoUrl(data.videoUrl);
-          setLoading(false);
-          return;
-        }
-
-        if (data.videoUrl) {
-          const url = data.videoUrl;
-          let attempt = 0;
-
-          while (attempt < 60) {
-            const statusRes = await fetch(
-              `/api/trigger/status?videoUrl=${encodeURIComponent(url)}`
-            );
-            const status = await statusRes.json();
-
-            if (status.ready) {
-              setVideoUrl(url);
-              setLoading(false);
-              return;
-            }
-
-            attempt++;
-            await new Promise((r) => setTimeout(r, 2000));
-          }
-
-          setError("Video generation timed out");
-          setLoading(false);
-          return;
-        }
-
-        setError("No video URL returned");
-        setLoading(false);
-      } catch (err: any) {
-        setError(err?.message ?? String(err));
-        setLoading(false);
-      }
+    if (!id) {
+      setStatus("error");
+      return;
     }
 
-    start();
+    // Start polling
+    pollStatus(id);
   }, []);
 
-  // 💥 Clears message ONLY after successful video generation
-  useEffect(() => {
-    if (videoUrl) {
-      localStorage.removeItem("user_message");
-      localStorage.removeItem("selected_character");
-    }
-  }, [videoUrl]);
+  // 2️⃣ Poll /api/video-status every 2 seconds
+  async function pollStatus(sessionId: string) {
+    try {
+      const res = await fetch(`/api/video-status?session_id=${sessionId}`);
+      const data = await res.json();
 
+      if (data.status === "ready" && data.videoUrl) {
+        setVideoUrl(data.videoUrl);
+        setStatus("ready");
+
+        // Clear prompt from localStorage
+        localStorage.removeItem("user_message");
+        localStorage.removeItem("selected_character");
+
+        return;
+      }
+
+      // Still processing → continue polling
+      setTimeout(() => pollStatus(sessionId), 2000);
+    } catch (err) {
+      setStatus("error");
+    }
+  }
+
+  // 3️⃣ Prepare blob
   async function prepareBlob() {
     if (!videoUrl) return null;
 
     const res = await fetch(videoUrl);
     const blob = await res.blob();
-    const local = URL.createObjectURL(blob);
-    setBlobUrl(local);
-    return { blob, local };
+    const url = URL.createObjectURL(blob);
+    return { blob, url };
   }
 
+  // 4️⃣ Download
   async function downloadVideo() {
     const prepared = await prepareBlob();
     if (!prepared) return;
 
     const a = document.createElement("a");
-    a.href = prepared.local;
+    a.href = prepared.url;
     a.download = "video.mp4";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
   }
 
+  // 5️⃣ Share
   async function shareVideo() {
-    if (!videoUrl) return;
-
     const prepared = await prepareBlob();
     if (!prepared) return;
 
@@ -123,6 +89,7 @@ export default function SuccessPage() {
     alert("Sharing not supported on this device");
   }
 
+  // 6️⃣ Copy Link
   async function copyLink() {
     if (!videoUrl) return;
     await navigator.clipboard.writeText(videoUrl);
@@ -130,45 +97,47 @@ export default function SuccessPage() {
     setTimeout(() => setCopied(false), 1500);
   }
 
-  if (error)
-    return (
-      <main>
-        <h1>Error</h1>
-        <p>{error}</p>
-      </main>
-    );
+  // ========== UI STATES ==========
 
-  if (loading)
+  if (status === "error") {
     return (
       <main>
-        <h1>Generating your video…</h1>
+        <h1>Error getting your video</h1>
+        <p>Try checking your email or contact support.</p>
       </main>
     );
+  }
 
-  if (!videoUrl)
+  if (status === "loading") {
     return (
       <main>
-        <h1>Done</h1>
-        <p>No video available.</p>
+        <h1>Your video is being generated…</h1>
+        <p>This usually takes about 5–15 seconds.</p>
       </main>
     );
+  }
+
+  if (!videoUrl) {
+    return (
+      <main>
+        <h1>No video available</h1>
+        <p>If you paid, please contact support.</p>
+      </main>
+    );
+  }
+
+  // ========== FINAL UI ==========
 
   return (
     <main>
-      <h1>Your video is ready</h1>
+      <h1>Your video is ready!</h1>
 
-      <video
-        src={videoUrl}
-        controls
-        style={{ maxWidth: "100%", marginTop: 20 }}
-      />
+      <video src={videoUrl} controls style={{ maxWidth: "100%", marginTop: 20 }} />
 
-      {/* Download button — separate line */}
       <div style={{ marginTop: 20 }}>
         <button onClick={downloadVideo}>Download Video</button>
       </div>
 
-      {/* Share + Copy — separate line */}
       <div style={{ marginTop: 20 }}>
         <button onClick={shareVideo}>Share Video</button>
         <button onClick={copyLink} style={{ marginLeft: 10 }}>
