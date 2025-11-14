@@ -4,7 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 
 export const config = {
   api: {
-    bodyParser: false, // REQUIRED for Stripe signatures
+    bodyParser: false,
   },
 };
 
@@ -30,14 +30,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).send(`Webhook signature mismatch: ${err.message}`);
   }
 
-  // 🔥 PAYMENT SUCCESS
   if (event.type === "checkout.session.completed") {
     const session = event.data.object as Stripe.Checkout.Session;
 
     const message = session.metadata?.message ?? "";
     const character = session.metadata?.character ?? "";
 
-    // Update DB row → status = “paid”
     await supabase
       .from("videos")
       .update({
@@ -47,7 +45,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       })
       .eq("session_id", session.id);
 
-    // Trigger n8n video generation
     await fetch(process.env.N8N_WEBHOOK_URL!, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -62,7 +59,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   return res.json({ received: true });
 }
 
-// Stripe raw-body helper
 async function buffer(req: NextApiRequest) {
   const chunks: Uint8Array[] = [];
   for await (const chunk of req) {
