@@ -6,9 +6,9 @@ import { useRouter, useParams } from "next/navigation";
 export default function CharacterDetailPage() {
   const router = useRouter();
 
-  // FIX TYPE ERROR
-  const params = useParams();
-  const slug = (params?.slug as string) || "";
+  // FIX TYPE ERROR PROPERLY
+  const params = useParams() as Record<string, string | string[]>;
+  const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
 
   const [message, setMessage] = useState("");
   const [showPayment, setShowPayment] = useState(false);
