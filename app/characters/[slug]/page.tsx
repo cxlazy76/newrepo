@@ -5,15 +5,18 @@ import { useRouter, useParams } from "next/navigation";
 
 export default function CharacterDetailPage() {
   const router = useRouter();
-  const { slug } = useParams();
+
+  // FIX TYPE ERROR
+  const params = useParams();
+  const slug = (params?.slug as string) || "";
 
   const [message, setMessage] = useState("");
   const [showPayment, setShowPayment] = useState(false);
 
   // 💥 FIXES BACK BUTTON CACHE BUG
   useEffect(() => {
-    const nav = performance.getEntriesByType("navigation")[0];
-    if (nav && (nav as any).type === "back_forward") {
+    const nav = performance.getEntriesByType("navigation")[0] as any;
+    if (nav?.type === "back_forward") {
       window.location.reload();
     }
   }, []);
@@ -37,7 +40,7 @@ export default function CharacterDetailPage() {
     }
   }, [slug]);
 
-  // Save message live
+  // Save message instantly
   useEffect(() => {
     if (message.trim().length > 0) {
       localStorage.setItem("user_message", message);
@@ -54,10 +57,18 @@ export default function CharacterDetailPage() {
   }
 
   async function redirectToStripe() {
-    const res = await fetch("/api/stripe/checkout", { method: "POST" });
+    const res = await fetch("/api/stripe/checkout", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message, character: character.slug }),
+    });
+
     const data = await res.json();
-    if (data.url) window.location.href = data.url;
-    else alert("Stripe error");
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      alert("Stripe error");
+    }
   }
 
   return (
