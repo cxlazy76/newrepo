@@ -5,15 +5,13 @@ import { useRouter, useParams } from "next/navigation";
 
 export default function CharacterDetailPage() {
   const router = useRouter();
-
-  // FIX TYPE ERROR PROPERLY
-  const params = useParams() as Record<string, string | string[]>;
+  const params = useParams();
   const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
 
   const [message, setMessage] = useState("");
   const [showPayment, setShowPayment] = useState(false);
 
-  // 💥 FIXES BACK BUTTON CACHE BUG
+  // Fix back/forward caching bug
   useEffect(() => {
     const nav = performance.getEntriesByType("navigation")[0] as any;
     if (nav?.type === "back_forward") {
@@ -40,9 +38,9 @@ export default function CharacterDetailPage() {
     }
   }, [slug]);
 
-  // Save message instantly
+  // Save message when updated
   useEffect(() => {
-    if (message.trim().length > 0) {
+    if (message.trim()) {
       localStorage.setItem("user_message", message);
       localStorage.setItem("selected_character", character.slug);
     }
@@ -60,7 +58,10 @@ export default function CharacterDetailPage() {
     const res = await fetch("/api/stripe/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message, character: character.slug }),
+      body: JSON.stringify({
+        message,
+        character: character.slug,
+      }),
     });
 
     const data = await res.json();
@@ -73,7 +74,10 @@ export default function CharacterDetailPage() {
 
   return (
     <main>
-      <button onClick={() => router.push("/characters")}>Back</button>
+
+      <button onClick={() => router.push("/characters")}>
+        Back
+      </button>
 
       <h1>Step 2 of 2</h1>
       <h2>Generate video for: {character.name}</h2>
@@ -83,6 +87,7 @@ export default function CharacterDetailPage() {
         onChange={(e) => setMessage(e.target.value)}
         maxLength={100}
       />
+
       <p>{message.length}/100</p>
 
       <button onClick={handleGenerate}>Generate video</button>
@@ -91,13 +96,14 @@ export default function CharacterDetailPage() {
         <div onClick={() => setShowPayment(false)}>
           <div onClick={(e) => e.stopPropagation()}>
             <h2>Complete your payment</h2>
-            <p>$3.99 per video</p>
+            <p>3.99 USD</p>
 
             <button onClick={redirectToStripe}>Pay now</button>
             <button onClick={() => setShowPayment(false)}>Cancel</button>
           </div>
         </div>
       )}
+
     </main>
   );
 }

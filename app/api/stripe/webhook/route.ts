@@ -1,77 +1,53 @@
 import { NextResponse } from "next/server";
-import { headers } from "next/headers";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 
-export const runtime = "nodejs"; // IMPORTANT for raw body and stripe
+export const runtime = "nodejs";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-10-29.clover",
 });
 
-// Supabase client for server-side
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE!
+  process.env.SUPABASE_SERVICE_KEY!
 );
 
+const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+
 export async function POST(req: Request) {
+  const body = await req.text();
+  const signature = req.headers.get("stripe-signature");
+
+  let event: Stripe.Event;
+
   try {
-    // FIX: headers() must be awaited
-    const h = await headers();
-    const sig = h.get("stripe-signature");
-    if (!sig) {
-      return NextResponse.json({ error: "Missing stripe signature" }, { status: 400 });
-    }
-
-    // Stripe requires RAW BODY
-    const rawBody = await req.text();
-
-    let event;
-    try {
-      event = stripe.webhooks.constructEvent(
-        rawBody,
-        sig,
-        process.env.STRIPE_WEBHOOK_SECRET!
-      );
-    } catch (err: any) {
-      return NextResponse.json(
-        { error: `Webhook signature mismatch: ${err.message}` },
-        { status: 400 }
-      );
-    }
-
-    // 🔥 PAYMENT COMPLETED
-    if (event.type === "checkout.session.completed") {
-      const session = event.data.object as Stripe.Checkout.Session;
-
-      const message = session.metadata?.message ?? "";
-      const character = session.metadata?.character ?? "";
-
-      // Update Supabase row
-      await supabase
-        .from("videos")
-        .update({
-          status: "paid",
-          message,
-          character,
-        })
-        .eq("session_id", session.id);
-
-      // Trigger n8n workflow
-      await fetch(process.env.N8N_WEBHOOK_URL!, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          session_id: session.id,
-          message,
-          character,
-        }),
-      });
-    }
-
-    return NextResponse.json({ received: true });
+    event = stripe.webhooks.constructEvent(body, signature!, endpointSecret);
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return new NextResponse(`Webhook error: ${err.message}`, { status: 400 });
   }
+
+  if (event.type === "checkout.session.completed") {
+    const session = event.data.object as Stripe.Checkout.Session;
+
+    const session_id = session.id;
+    const message = session.metadata?.message;
+    const character = session.metadata?.character;
+
+    await supabase.from("videos").insert({
+      session_id,
+      message,
+      character,
+      status: "paid",
+      video_url: null,
+    });
+
+    await fetch(process.env.N8N_WEBHOOK_URL!, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_id })
+    });
+  }
+
+  return new NextResponse(null, { status: 200 });
 }
