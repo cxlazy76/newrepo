@@ -38,21 +38,6 @@ export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   if (!body) return jsonError("Invalid JSON");
 
-  const token = body.turnstile;
-  if (!token) return jsonError("Missing Turnstile token");
-
-  const verifyRes = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-    method: "POST",
-    body: new URLSearchParams({
-      secret: process.env.TURNSTILE_SECRET_KEY!,
-      response: token,
-      remoteip: ip
-    })
-  });
-
-  const verify = await verifyRes.json();
-  if (!verify.success) return jsonError("Turnstile verification failed");
-
   const cleanMessage = sanitize(body.message);
   const cleanCharacter = sanitize(body.character);
 

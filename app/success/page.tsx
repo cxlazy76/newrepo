@@ -7,20 +7,10 @@ import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 export default function SuccessPage() {
-  return (
-    <Suspense fallback={<main>Processing</main>}>
-      <SuccessClient />
-    </Suspense>
-  );
-}
-
-function SuccessClient() {
   const params = useSearchParams();
   const session_id = params.get("session_id");
 
-  const [status, setStatus] = useState<"error" | "processing" | "ready">(
-    "processing"
-  );
+  const [status, setStatus] = useState<"error" | "processing" | "ready">("processing");
   const [videoUrl, setVideoUrl] = useState("");
 
   useEffect(() => {
@@ -32,16 +22,7 @@ function SuccessClient() {
     let active = true;
     let attempts = 0;
 
-    const delays = [
-      1000,
-      1500,
-      2000,
-      3000,
-      5000,
-      8000,
-      13000,
-      20000,
-    ];
+    const delays = [1000, 1500, 2000, 3000, 5000, 8000, 13000, 20000];
 
     const poll = async () => {
       attempts++;
@@ -50,9 +31,7 @@ function SuccessClient() {
         return;
       }
 
-      const res = await fetch(
-        `/api/video/status?session_id=${session_id}`
-      );
+      const res = await fetch(`/api/video/status?session_id=${session_id}`);
       if (!res) {
         setStatus("error");
         return;
@@ -79,8 +58,7 @@ function SuccessClient() {
         return;
       }
 
-      const delay =
-        delays[Math.min(attempts - 1, delays.length - 1)];
+      const delay = delays[Math.min(attempts - 1, delays.length - 1)];
       setTimeout(poll, delay);
     };
 
@@ -94,24 +72,22 @@ function SuccessClient() {
   useEffect(() => {
     if (status === "ready") {
       Object.keys(localStorage).forEach((k) => {
-        if (k.startsWith("message:"))
-          localStorage.removeItem(k);
+        if (k.startsWith("message:")) localStorage.removeItem(k);
       });
     }
   }, [status]);
 
-  if (status === "error") return <main>Error</main>;
-
-  if (status === "ready")
-    return (
-      <main>
-        <video
-          data-testid="video"
-          src={videoUrl}
-          controls
-        ></video>
-      </main>
-    );
-
-  return <main>Processing</main>;
+  return (
+    <Suspense fallback={<main>Processing</main>}>
+      {status === "error" ? (
+        <main>Error</main>
+      ) : status === "ready" ? (
+        <main>
+          <video data-testid="video" src={videoUrl} controls></video>
+        </main>
+      ) : (
+        <main>Processing</main>
+      )}
+    </Suspense>
+  );
 }

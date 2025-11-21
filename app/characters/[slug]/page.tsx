@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 
 const sanitize = (input: string) => {
@@ -17,8 +17,6 @@ export default function CharacterDetailPage() {
 
   const [message, setMessage] = useState("");
   const [showPayment, setShowPayment] = useState(false);
-  const [turnstileToken, setTurnstileToken] = useState("");
-  const turnstileRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const nav = performance.getEntriesByType("navigation")[0] as any;
@@ -69,33 +67,13 @@ export default function CharacterDetailPage() {
     setShowPayment(true);
   }
 
-  useEffect(() => {
-    if (!showPayment) return;
-    if (!turnstileRef.current) return;
-
-    if (typeof window !== "undefined" && (window as any).turnstile) {
-      (window as any).turnstile.render(turnstileRef.current, {
-        sitekey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!,
-        callback: (token: string) => {
-          setTurnstileToken(token);
-        }
-      });
-    }
-  }, [showPayment]);
-
   async function redirectToStripe() {
-    if (!turnstileToken) {
-      alert("Verification failed");
-      return;
-    }
-
     const res = await fetch("/api/stripe/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         message,
-        character: character.slug,
-        turnstile: turnstileToken
+        character: character.slug
       })
     });
 
@@ -131,8 +109,6 @@ export default function CharacterDetailPage() {
           <div onClick={(e) => e.stopPropagation()}>
             <h2>Complete your payment</h2>
             <p>3.99 USD</p>
-
-            <div ref={turnstileRef}></div>
 
             <button onClick={redirectToStripe}>Pay now</button>
             <button onClick={() => setShowPayment(false)}>Cancel</button>
