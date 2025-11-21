@@ -1,9 +1,18 @@
 "use client";
 
+import { Suspense } from "react";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 export default function SuccessPage() {
+  return (
+    <Suspense fallback={<main>Processing</main>}>
+      <SuccessClient />
+    </Suspense>
+  );
+}
+
+function SuccessClient() {
   const params = useSearchParams();
   const session_id = params.get("session_id");
 
