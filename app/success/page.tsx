@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { Suspense } from "react";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -16,7 +18,9 @@ function SuccessClient() {
   const params = useSearchParams();
   const session_id = params.get("session_id");
 
-  const [status, setStatus] = useState<"error" | "processing" | "ready">("processing");
+  const [status, setStatus] = useState<"error" | "processing" | "ready">(
+    "processing"
+  );
   const [videoUrl, setVideoUrl] = useState("");
 
   useEffect(() => {
@@ -28,7 +32,16 @@ function SuccessClient() {
     let active = true;
     let attempts = 0;
 
-    const delays = [1000, 1500, 2000, 3000, 5000, 8000, 13000, 20000];
+    const delays = [
+      1000,
+      1500,
+      2000,
+      3000,
+      5000,
+      8000,
+      13000,
+      20000,
+    ];
 
     const poll = async () => {
       attempts++;
@@ -37,7 +50,9 @@ function SuccessClient() {
         return;
       }
 
-      const res = await fetch(`/api/video/status?session_id=${session_id}`);
+      const res = await fetch(
+        `/api/video/status?session_id=${session_id}`
+      );
       if (!res) {
         setStatus("error");
         return;
@@ -64,7 +79,8 @@ function SuccessClient() {
         return;
       }
 
-      const delay = delays[Math.min(attempts - 1, delays.length - 1)];
+      const delay =
+        delays[Math.min(attempts - 1, delays.length - 1)];
       setTimeout(poll, delay);
     };
 
@@ -78,7 +94,8 @@ function SuccessClient() {
   useEffect(() => {
     if (status === "ready") {
       Object.keys(localStorage).forEach((k) => {
-        if (k.startsWith("message:")) localStorage.removeItem(k);
+        if (k.startsWith("message:"))
+          localStorage.removeItem(k);
       });
     }
   }, [status]);
@@ -88,7 +105,11 @@ function SuccessClient() {
   if (status === "ready")
     return (
       <main>
-        <video data-testid="video" src={videoUrl} controls></video>
+        <video
+          data-testid="video"
+          src={videoUrl}
+          controls
+        ></video>
       </main>
     );
 
