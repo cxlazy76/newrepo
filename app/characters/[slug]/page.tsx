@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
+import ApplePayButton from "@/components/ApplePayButton";
 
 const sanitize = (input: string) => {
   if (typeof input !== "string") return "";
@@ -18,13 +19,6 @@ export default function CharacterDetailPage() {
   const [message, setMessage] = useState("");
   const [showPayment, setShowPayment] = useState(false);
 
-  useEffect(() => {
-    const nav = performance.getEntriesByType("navigation")[0] as any;
-    if (nav?.type === "back_forward") {
-      window.location.reload();
-    }
-  }, []);
-
   const characters = [
     { name: "Santa Claus", slug: "santa" },
     { name: "Alien", slug: "alien" },
@@ -33,7 +27,6 @@ export default function CharacterDetailPage() {
   ];
 
   const character = characters.find((c) => c.slug === slug) || characters[0];
-
   const storageKey = `message:${character.slug}`;
 
   useEffect(() => {
@@ -50,18 +43,16 @@ export default function CharacterDetailPage() {
 
   function isInvalidMessage(msg: string) {
     const normalized = msg.replace(/\s+/g, " ").trim();
-
     if (normalized.length < 20) return true;
     if (!/[a-zA-Z]/.test(normalized)) return true;
     if (/^(.)\1+$/.test(normalized)) return true;
     if (/^[a-z]{2,}$/.test(normalized) && normalized.length < 25) return true;
-
     return false;
   }
 
   function handleGenerate() {
     if (isInvalidMessage(message)) {
-      alert("Write a longer, meaningful message (at least 20 characters).");
+      alert("Write a longer, meaningful message.");
       return;
     }
     setShowPayment(true);
@@ -78,12 +69,8 @@ export default function CharacterDetailPage() {
     });
 
     const data = await res.json();
-
-    if (data.url) {
-      window.location.href = data.url;
-    } else {
-      alert("Stripe error");
-    }
+    if (data.url) window.location.href = data.url;
+    else alert("Stripe error");
   }
 
   return (
@@ -109,6 +96,8 @@ export default function CharacterDetailPage() {
           <div onClick={(e) => e.stopPropagation()}>
             <h2>Complete your payment</h2>
             <p>3.99 USD</p>
+
+            <ApplePayButton />
 
             <button onClick={redirectToStripe}>Pay now</button>
             <button onClick={() => setShowPayment(false)}>Cancel</button>

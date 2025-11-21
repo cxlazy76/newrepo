@@ -45,7 +45,7 @@ export async function POST(req: Request) {
     return jsonError("Missing message or character");
 
   if (invalidMessage(cleanMessage))
-    return jsonError("Message too short or invalid");
+    return jsonError("Message invalid");
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
@@ -67,7 +67,7 @@ export async function POST(req: Request) {
       customer_ua: hdrs.get("user-agent")
     },
     success_url: `${process.env.NEXT_PUBLIC_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${process.env.NEXT_PUBLIC_URL}/characters/${cleanCharacter}`
+    cancel_url: `${process.env.NEXT_PUBLIC_URL}/characters/${cleanCharacter}`,
   });
 
   return NextResponse.json({ url: session.url });
