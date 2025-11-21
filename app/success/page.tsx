@@ -6,7 +6,7 @@ import { Suspense } from "react";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-export default function SuccessPage() {
+function SuccessContent() {
   const params = useSearchParams();
   const session_id = params.get("session_id");
 
@@ -77,17 +77,21 @@ export default function SuccessPage() {
     }
   }, [status]);
 
+  if (status === "error") return <main>Error</main>;
+  if (status === "ready")
+    return (
+      <main>
+        <video data-testid="video" src={videoUrl} controls></video>
+      </main>
+    );
+
+  return <main>Processing</main>;
+}
+
+export default function SuccessPage() {
   return (
     <Suspense fallback={<main>Processing</main>}>
-      {status === "error" ? (
-        <main>Error</main>
-      ) : status === "ready" ? (
-        <main>
-          <video data-testid="video" src={videoUrl} controls></video>
-        </main>
-      ) : (
-        <main>Processing</main>
-      )}
+      <SuccessContent />
     </Suspense>
   );
 }
