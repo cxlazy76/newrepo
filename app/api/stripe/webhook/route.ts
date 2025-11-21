@@ -92,5 +92,8 @@ export async function POST(req: Request) {
     body: JSON.stringify({ session_id }),
   });
 
+  console.log("Calling N8N:", process.env.N8N_WEBHOOK_URL);
+
+
   return NextResponse.json({ received: true });
 }
