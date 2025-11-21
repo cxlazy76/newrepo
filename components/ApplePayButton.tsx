@@ -20,26 +20,28 @@ export default function ApplePayButton() {
         currency: "usd",
         total: { label: "AI Greeting Video", amount: 399 },
         requestPayerName: true,
-        requestPayerEmail: true,
+        requestPayerEmail: true
       });
 
       const canPay = await pr.canMakePayment();
-
       if (canPay && canPay.applePay) {
         setPaymentRequest(pr);
 
         pr.on("paymentmethod", async (event: any) => {
           const res = await fetch("/api/payment", {
-            method: "POST",
+            method: "POST"
           });
 
           const { clientSecret } = await res.json();
 
-          const stripe = await stripePromise;
+          const stripeClient = await stripePromise;
 
-          const { error } = await stripe!.confirmCardPayment(clientSecret, {
-            payment_method: event.paymentMethod.id,
-          });
+          const { error } = await stripeClient!.confirmCardPayment(
+            clientSecret,
+            {
+              payment_method: event.paymentMethod.id
+            }
+          );
 
           event.complete(error ? "fail" : "success");
         });
@@ -56,7 +58,7 @@ export default function ApplePayButton() {
 
   return (
     <button onClick={handleClick}>
-      <img src="/payment/apple-pay.svg" alt="apple-pay" />
+      Pay with Apple Pay
     </button>
   );
 }
