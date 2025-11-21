@@ -1,7 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
+
+const sanitize = (input: string) => {
+  if (typeof input !== "string") return "";
+  let x = input.replace(/<[^>]*>/g, "");
+  if (x.length > 100) x = x.slice(0, 100);
+  return x;
+};
 
 export default function CharacterDetailPage() {
   const router = useRouter();
@@ -10,8 +17,9 @@ export default function CharacterDetailPage() {
 
   const [message, setMessage] = useState("");
   const [showPayment, setShowPayment] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const turnstileRef = useRef<HTMLDivElement | null>(null);
 
-  // Fix back/forward caching bug
   useEffect(() => {
     const nav = performance.getEntriesByType("navigation")[0] as any;
     if (nav?.type === "back_forward") {
@@ -23,48 +31,76 @@ export default function CharacterDetailPage() {
     { name: "Santa Claus", slug: "santa" },
     { name: "Alien", slug: "alien" },
     { name: "Monk", slug: "monk" },
-    { name: "Tribal Man", slug: "tribal-man" },
+    { name: "Tribal Man", slug: "tribal-man" }
   ];
 
   const character = characters.find((c) => c.slug === slug) || characters[0];
 
-  // Load saved message on mount
-  useEffect(() => {
-    const savedMessage = localStorage.getItem("user_message");
-    const savedCharacter = localStorage.getItem("selected_character");
+  const storageKey = `message:${character.slug}`;
 
-    if (savedCharacter === slug && savedMessage) {
-      setMessage(savedMessage);
-    }
-  }, [slug]);
-
-  // Save message when updated
   useEffect(() => {
-    if (message.trim()) {
-      localStorage.setItem("user_message", message);
-      localStorage.setItem("selected_character", character.slug);
-    }
-  }, [message, character.slug]);
+    const saved = localStorage.getItem(storageKey);
+    if (saved) setMessage(saved);
+    else setMessage("");
+  }, [storageKey]);
+
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const clean = sanitize(e.target.value);
+    setMessage(clean);
+    localStorage.setItem(storageKey, clean);
+  };
+
+  function isInvalidMessage(msg: string) {
+    const normalized = msg.replace(/\s+/g, " ").trim();
+
+    if (normalized.length < 20) return true;
+    if (!/[a-zA-Z]/.test(normalized)) return true;
+    if (/^(.)\1+$/.test(normalized)) return true;
+    if (/^[a-z]{2,}$/.test(normalized) && normalized.length < 25) return true;
+
+    return false;
+  }
 
   function handleGenerate() {
-    if (!message.trim()) {
-      alert("Write a message first");
+    if (isInvalidMessage(message)) {
+      alert("Write a longer, meaningful message (at least 20 characters).");
       return;
     }
     setShowPayment(true);
   }
 
+  useEffect(() => {
+    if (!showPayment) return;
+    if (!turnstileRef.current) return;
+
+    if (typeof window !== "undefined" && (window as any).turnstile) {
+      (window as any).turnstile.render(turnstileRef.current, {
+        sitekey: process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY!,
+        callback: (token: string) => {
+          setTurnstileToken(token);
+        }
+      });
+    }
+  }, [showPayment]);
+
   async function redirectToStripe() {
+    if (!turnstileToken) {
+      alert("Verification failed");
+      return;
+    }
+
     const res = await fetch("/api/stripe/checkout", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         message,
         character: character.slug,
-      }),
+        turnstile: turnstileToken
+      })
     });
 
     const data = await res.json();
+
     if (data.url) {
       window.location.href = data.url;
     } else {
@@ -74,18 +110,16 @@ export default function CharacterDetailPage() {
 
   return (
     <main>
-
-      <button onClick={() => router.push("/characters")}>
-        Back
-      </button>
+      <button onClick={() => router.push("/characters")}>Back</button>
 
       <h1>Step 2 of 2</h1>
       <h2>Generate video for: {character.name}</h2>
 
       <textarea
         value={message}
-        onChange={(e) => setMessage(e.target.value)}
+        onChange={handleChange}
         maxLength={100}
+        placeholder="Hey John, wishing you a happy birthday!"
       />
 
       <p>{message.length}/100</p>
@@ -98,12 +132,13 @@ export default function CharacterDetailPage() {
             <h2>Complete your payment</h2>
             <p>3.99 USD</p>
 
+            <div ref={turnstileRef}></div>
+
             <button onClick={redirectToStripe}>Pay now</button>
             <button onClick={() => setShowPayment(false)}>Cancel</button>
           </div>
         </div>
       )}
-
     </main>
   );
 }

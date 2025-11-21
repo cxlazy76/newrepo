@@ -10,7 +10,7 @@ export default function CharactersPage() {
     { name: "Alien", path: "/characters/alien" },
     { name: "Navy Seal", path: "/characters/navyseal" },
     { name: "Monk", path: "/characters/monk" },
-    { name: "Tribal Man", path: "/characters/tribal-man" },
+    { name: "Tribal Man", path: "/characters/tribal-man" }
   ];
 
   return (
@@ -20,9 +20,7 @@ export default function CharactersPage() {
 
       {characters.map((c) => (
         <div key={c.path}>
-          <button onClick={() => router.push(c.path)}>
-            {c.name}
-          </button>
+          <button onClick={() => router.push(c.path)}>{c.name}</button>
         </div>
       ))}
     </main>

@@ -1,53 +1,96 @@
-import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import { createClient } from "@supabase/supabase-js";
-
-export const runtime = "nodejs";
+import { supabaseServer } from "@/lib/supabaseServer";
+import { NextResponse } from "next/server";
+import { headers } from "next/headers";
+import { rateLimit } from "@/lib/rate-limiter";
+import { getIp } from "@/lib/get-ip";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-10-29.clover",
 });
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_KEY!
-);
-
-const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
+const sanitize = (input: string) => {
+  if (typeof input !== "string") return "";
+  let x = input.replace(/<[^>]*>/g, "");
+  x = x.replace(/\s+/g, " ").trim();
+  if (x.length > 100) x = x.slice(0, 100);
+  return x;
+};
 
 export async function POST(req: Request) {
-  const body = await req.text();
+  const hdrs = await headers();
+  const ip = getIp(hdrs);
+
+  const allowed = await rateLimit(ip, "webhook", 5, 60);
+  if (!allowed) {
+    await new Promise(res => setTimeout(res, 50));
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   const signature = req.headers.get("stripe-signature");
+  if (!signature)
+    return NextResponse.json({ error: "Missing signature" }, { status: 400 });
 
-  let event: Stripe.Event;
+  const rawBody = Buffer.from(await req.arrayBuffer());
 
+  let event;
   try {
-    event = stripe.webhooks.constructEvent(body, signature!, endpointSecret);
-  } catch (err: any) {
-    return new NextResponse(`Webhook error: ${err.message}`, { status: 400 });
+    event = stripe.webhooks.constructEvent(
+      rawBody,
+      signature,
+      process.env.STRIPE_WEBHOOK_SECRET!
+    );
+  } catch {
+    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object as Stripe.Checkout.Session;
-
-    const session_id = session.id;
-    const message = session.metadata?.message;
-    const character = session.metadata?.character;
-
-    await supabase.from("videos").insert({
-      session_id,
-      message,
-      character,
-      status: "paid",
-      video_url: null,
-    });
-
-    await fetch(process.env.N8N_WEBHOOK_URL!, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ session_id })
-    });
+  if (event.type !== "checkout.session.completed") {
+    return NextResponse.json({ received: true });
   }
 
-  return new NextResponse(null, { status: 200 });
+  const session = event.data.object;
+
+  if (session.payment_status !== "paid") {
+    return NextResponse.json({ error: "Payment not completed" }, { status: 400 });
+  }
+
+  const session_id = session.id;
+  const message = sanitize(session.metadata?.message ?? "");
+  const character = sanitize(session.metadata?.character ?? "");
+  const email = session.customer_details?.email;
+
+  if (!session_id || !message || !character || !email) {
+    return NextResponse.json({ error: "Missing metadata" }, { status: 400 });
+  }
+
+  const supabase = supabaseServer();
+
+  const { data: existing } = await supabase
+    .from("videos")
+    .select("id")
+    .eq("session_id", session_id)
+    .maybeSingle();
+
+  if (existing) {
+    return NextResponse.json({ received: true });
+  }
+
+  await supabase.from("videos").insert({
+    session_id,
+    message,
+    character,
+    email,
+    status: "paid",
+    video_url: null,
+    ip_address: session.metadata?.customer_ip ?? null,
+    user_agent: session.metadata?.customer_ua ?? null
+  });
+
+  await fetch(process.env.N8N_WEBHOOK_URL!, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ session_id }),
+  });
+
+  return NextResponse.json({ received: true });
 }

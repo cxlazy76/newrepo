@@ -1,16 +1,66 @@
-import { NextResponse } from "next/server";
 import Stripe from "stripe";
+import { NextResponse } from "next/server";
+import { rateLimit } from "@/lib/rate-limiter";
+import { headers } from "next/headers";
+import { getIp } from "@/lib/get-ip";
+import { jsonError } from "@/lib/api";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-10-29.clover",
 });
 
-export async function POST(req: Request) {
-  const { message, character } = await req.json();
+const sanitize = (input: string) => {
+  if (typeof input !== "string") return "";
+  let x = input.replace(/<[^>]*>/g, "");
+  x = x.replace(/\s+/g, " ").trim();
+  if (x.length > 100) x = x.slice(0, 100);
+  return x;
+};
 
-  if (!message || !character) {
-    return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+function invalidMessage(msg: string) {
+  if (msg.length < 20) return true;
+  if (!/[a-zA-Z]/.test(msg)) return true;
+  if (/^(.)\1+$/.test(msg)) return true;
+  if (/^[a-z]{2,}$/.test(msg) && msg.length < 25) return true;
+  return false;
+}
+
+export async function POST(req: Request) {
+  const hdrs = await headers();
+  const ip = getIp(hdrs);
+
+  const allowed = await rateLimit(ip, "checkout", 10, 60);
+  if (!allowed) {
+    await new Promise(res => setTimeout(res, 50));
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
+
+  const body = await req.json().catch(() => null);
+  if (!body) return jsonError("Invalid JSON");
+
+  const token = body.turnstile;
+  if (!token) return jsonError("Missing Turnstile token");
+
+  const verifyRes = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+    method: "POST",
+    body: new URLSearchParams({
+      secret: process.env.TURNSTILE_SECRET_KEY!,
+      response: token,
+      remoteip: ip
+    })
+  });
+
+  const verify = await verifyRes.json();
+  if (!verify.success) return jsonError("Turnstile verification failed");
+
+  const cleanMessage = sanitize(body.message);
+  const cleanCharacter = sanitize(body.character);
+
+  if (!cleanMessage || !cleanCharacter)
+    return jsonError("Missing message or character");
+
+  if (invalidMessage(cleanMessage))
+    return jsonError("Message too short or invalid");
 
   const session = await stripe.checkout.sessions.create({
     mode: "payment",
@@ -20,16 +70,19 @@ export async function POST(req: Request) {
         price_data: {
           currency: "usd",
           unit_amount: 399,
-          product_data: {
-            name: `Custom Video: ${character}`,
-          },
+          product_data: { name: `Custom Video: ${cleanCharacter}` }
         },
-        quantity: 1,
+        quantity: 1
       }
     ],
-    metadata: { message, character },
+    metadata: {
+      message: cleanMessage,
+      character: cleanCharacter,
+      customer_ip: ip,
+      customer_ua: hdrs.get("user-agent")
+    },
     success_url: `${process.env.NEXT_PUBLIC_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancel_url: `${process.env.NEXT_PUBLIC_URL}/characters/${character}`,
+    cancel_url: `${process.env.NEXT_PUBLIC_URL}/characters/${cleanCharacter}`
   });
 
   return NextResponse.json({ url: session.url });

@@ -7,51 +7,81 @@ export default function SuccessPage() {
   const params = useSearchParams();
   const session_id = params.get("session_id");
 
-  const [created, setCreated] = useState(false);
-  const [status, setStatus] = useState("pending");
+  const [status, setStatus] = useState<"error" | "processing" | "ready">("processing");
   const [videoUrl, setVideoUrl] = useState("");
 
   useEffect(() => {
-    if (!session_id || created) return;
+    if (!session_id) {
+      setStatus("error");
+      return;
+    }
 
-    fetch("/api/videos/create", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ session_id })
-    }).then(() => {
-      setCreated(true);
-    });
-  }, [session_id, created]);
+    let active = true;
+    let attempts = 0;
 
-  useEffect(() => {
-    if (!created) return;
+    const delays = [1000, 1500, 2000, 3000, 5000, 8000, 13000, 20000];
 
-    const interval = setInterval(async () => {
-      const res = await fetch(`/api/videos/status?session_id=${session_id}`);
+    const poll = async () => {
+      attempts++;
+      if (attempts > 30) {
+        setStatus("error");
+        return;
+      }
+
+      const res = await fetch(`/api/video/status?session_id=${session_id}`);
+      if (!res) {
+        setStatus("error");
+        return;
+      }
+
       const data = await res.json();
+      if (!active) return;
+
+      if (data.status === "error") {
+        setStatus("error");
+        return;
+      }
 
       if (data.status === "finished") {
-        setStatus("finished");
-        setVideoUrl(data.video_url);
-        clearInterval(interval);
+        const u = await fetch(`/api/video/url?id=${data.id}`);
+        if (!u) {
+          setStatus("error");
+          return;
+        }
+
+        const j = await u.json();
+        setVideoUrl(j.signedUrl);
+        setStatus("ready");
+        return;
       }
-    }, 5000);
 
-    return () => clearInterval(interval);
-  }, [created, session_id]);
+      const delay = delays[Math.min(attempts - 1, delays.length - 1)];
+      setTimeout(poll, delay);
+    };
 
-  return (
-    <main>
-      <h1>Payment successful</h1>
+    poll();
 
-      {status !== "finished" && <p>Generating video...</p>}
+    return () => {
+      active = false;
+    };
+  }, [session_id]);
 
-      {status === "finished" && (
-        <div>
-          <p>Video ready</p>
-          <p>{videoUrl}</p>
-        </div>
-      )}
-    </main>
-  );
+  useEffect(() => {
+    if (status === "ready") {
+      Object.keys(localStorage).forEach((k) => {
+        if (k.startsWith("message:")) localStorage.removeItem(k);
+      });
+    }
+  }, [status]);
+
+  if (status === "error") return <main>Error</main>;
+
+  if (status === "ready")
+    return (
+      <main>
+        <video data-testid="video" src={videoUrl} controls></video>
+      </main>
+    );
+
+  return <main>Processing</main>;
 }
