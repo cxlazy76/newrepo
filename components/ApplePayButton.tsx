@@ -4,60 +4,55 @@ import { useEffect, useState } from "react";
 import { loadStripe } from "@stripe/stripe-js";
 
 const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY as string
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
 );
 
 export default function ApplePayButton() {
-  const [paymentRequest, setPaymentRequest] = useState<any>(null);
+  const [pr, setPr] = useState<any>(null);
 
   useEffect(() => {
-    async function setup() {
+    async function init() {
       const stripe = await stripePromise;
       if (!stripe) return;
 
-      const pr = stripe.paymentRequest({
+      const paymentRequest = stripe.paymentRequest({
         country: "US",
         currency: "usd",
-        total: { label: "AI Greeting Video", amount: 399 },
+        total: {
+          label: "AI Greeting Video",
+          amount: 399
+        },
         requestPayerName: true,
         requestPayerEmail: true
       });
 
-      const canPay = await pr.canMakePayment();
-      if (canPay && canPay.applePay) {
-        setPaymentRequest(pr);
+      const result = await paymentRequest.canMakePayment();
 
-        pr.on("paymentmethod", async (event: any) => {
-          const res = await fetch("/api/payment", {
-            method: "POST"
-          });
+      if (result && result.applePay) {
+        setPr(paymentRequest);
 
+        paymentRequest.on("paymentmethod", async (event: any) => {
+          const res = await fetch("/api/payment", { method: "POST" });
           const { clientSecret } = await res.json();
 
-          const stripeClient = await stripePromise;
+          const stripeConfirm = await stripe.confirmCardPayment(clientSecret, {
+            payment_method: event.paymentMethod.id
+          });
 
-          const { error } = await stripeClient!.confirmCardPayment(
-            clientSecret,
-            {
-              payment_method: event.paymentMethod.id
-            }
-          );
-
-          event.complete(error ? "fail" : "success");
+          event.complete(stripeConfirm.error ? "fail" : "success");
         });
       }
     }
 
-    setup();
+    init();
   }, []);
 
-  const handleClick = async () => {
-    if (!paymentRequest) return;
-    await paymentRequest.show();
-  };
+  if (!pr) {
+    return null;
+  }
 
   return (
-    <button onClick={handleClick}>
+    <button onClick={() => pr.show()}>
       Pay with Apple Pay
     </button>
   );
