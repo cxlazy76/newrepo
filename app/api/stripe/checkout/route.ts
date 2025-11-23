@@ -70,5 +70,17 @@ export async function POST(req: Request) {
     cancel_url: `${process.env.NEXT_PUBLIC_URL}/characters/${cleanCharacter}`,
   });
 
+  await fetch("/api/log/event", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      event_name: "stripe_session_created",
+      session_id: session.id,
+      metadata: {
+        character: cleanCharacter
+      }
+    })
+  });
+
   return NextResponse.json({ url: session.url });
 }

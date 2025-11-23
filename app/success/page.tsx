@@ -75,11 +75,21 @@ function SuccessContent() {
 
   useEffect(() => {
     if (status === "ready") {
+      fetch("/api/log/event", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event_name: "video_finished",
+          session_id,
+          metadata: null
+        })
+      });
+
       Object.keys(localStorage).forEach((k) => {
         if (k.startsWith("message:")) localStorage.removeItem(k);
       });
     }
-  }, [status]);
+  }, [status, session_id]);
 
   if (status === "error") return <main>Error</main>;
   if (status === "ready")

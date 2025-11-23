@@ -19,12 +19,25 @@ export default function CharacterDetailPage() {
   const [message, setMessage] = useState("");
   const [showPayment, setShowPayment] = useState(false);
 
-  // F.1 page-view logging
   useEffect(() => {
     if (slug) {
       import("@/lib/log").then(m => m.logView(`/characters/${slug}`));
     }
   }, [slug]);
+
+  useEffect(() => {
+    if (showPayment) {
+      fetch("/api/log/event", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event_name: "checkout_started",
+          session_id: null,
+          metadata: { slug }
+        })
+      });
+    }
+  }, [showPayment, slug]);
 
   const characters = [
     { name: "Santa Claus", slug: "santa" },
