@@ -7,7 +7,7 @@ const stripePromise = loadStripe(
   process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY as string
 );
 
-export default function ApplePayButton() {
+export default function WalletPayButton() {
   const [paymentRequest, setPaymentRequest] = useState<any>(null);
 
   useEffect(() => {
@@ -24,7 +24,7 @@ export default function ApplePayButton() {
       });
 
       const canPay = await pr.canMakePayment();
-      if (canPay && canPay.applePay) {
+      if (canPay) {
         setPaymentRequest(pr);
 
         pr.on("paymentmethod", async (event: any) => {
@@ -58,7 +58,7 @@ export default function ApplePayButton() {
 
   return (
     <button onClick={handleClick}>
-      Pay with Apple Pay
+      Pay with Wallet
     </button>
   );
 }
