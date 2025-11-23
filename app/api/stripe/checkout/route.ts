@@ -70,7 +70,7 @@ export async function POST(req: Request) {
     cancel_url: `${process.env.NEXT_PUBLIC_URL}/characters/${cleanCharacter}`,
   });
 
-  await fetch("/api/log/event", {
+  await fetch(`${process.env.NEXT_PUBLIC_URL}/api/log/event`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
