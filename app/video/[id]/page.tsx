@@ -2,6 +2,8 @@ export const revalidate = 3600;
 
 import { notFound } from "next/navigation";
 import { supabaseServer } from "@/lib/supabaseServer";
+import { headers } from "next/headers";
+import { getIp } from "@/lib/get-ip";
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -12,6 +14,14 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
   if (!UUID_REGEX.test(id)) notFound();
 
   const supabase = supabaseServer();
+
+  const hdrs = await headers();
+
+  await supabase.from("analytics_page_views").insert({
+    path: `/video/${id}`,
+    ip: getIp(hdrs),
+    ua: hdrs.get("user-agent") || ""
+  });
 
   const { data: row } = await supabase
     .from("videos")

@@ -14,6 +14,10 @@ function SuccessContent() {
   const [videoUrl, setVideoUrl] = useState("");
 
   useEffect(() => {
+    import("@/lib/log").then(m => m.logView("/success"));
+  }, []);
+
+  useEffect(() => {
     if (!session_id) {
       setStatus("error");
       return;

@@ -1,9 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function CharactersPage() {
   const router = useRouter();
+
+  useEffect(() => {
+    import("@/lib/log").then(m => m.logView("/characters"));
+  }, []);
 
   const characters = [
     { name: "Santa", path: "/characters/santa" },

@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import ApplePayButton from "@/components/ApplePayButton";
+import WalletPayButton from "@/components/WalletPayButton";
 
 const sanitize = (input: string) => {
   if (typeof input !== "string") return "";
@@ -18,6 +18,13 @@ export default function CharacterDetailPage() {
 
   const [message, setMessage] = useState("");
   const [showPayment, setShowPayment] = useState(false);
+
+  // F.1 page-view logging
+  useEffect(() => {
+    if (slug) {
+      import("@/lib/log").then(m => m.logView(`/characters/${slug}`));
+    }
+  }, [slug]);
 
   const characters = [
     { name: "Santa Claus", slug: "santa" },
@@ -97,7 +104,7 @@ export default function CharacterDetailPage() {
             <h2>Complete your payment</h2>
             <p>3.99 USD</p>
 
-            <ApplePayButton />
+            <WalletPayButton />
 
             <button onClick={redirectToStripe}>Pay now</button>
             <button onClick={() => setShowPayment(false)}>Cancel</button>
