@@ -75,6 +75,17 @@ function SuccessContent() {
 
   useEffect(() => {
     if (status === "ready") {
+      import("@/lib/ga").then((m) =>
+        m.gaEvent("purchase", {
+          currency: "USD",
+          value: 3.99,
+          transaction_id: session_id,
+          items: [
+            { item_name: "AI Greeting Video", item_id: session_id }
+          ]
+        })
+      );
+
       fetch("/api/log/event", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

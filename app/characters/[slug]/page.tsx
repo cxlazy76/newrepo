@@ -19,26 +19,6 @@ export default function CharacterDetailPage() {
   const [message, setMessage] = useState("");
   const [showPayment, setShowPayment] = useState(false);
 
-  useEffect(() => {
-    if (slug) {
-      import("@/lib/log").then(m => m.logView(`/characters/${slug}`));
-    }
-  }, [slug]);
-
-  useEffect(() => {
-    if (showPayment) {
-      fetch("/api/log/event", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          event_name: "checkout_started",
-          session_id: null,
-          metadata: { slug }
-        })
-      });
-    }
-  }, [showPayment, slug]);
-
   const characters = [
     { name: "Santa Claus", slug: "santa" },
     { name: "Alien", slug: "alien" },
@@ -48,6 +28,10 @@ export default function CharacterDetailPage() {
 
   const character = characters.find((c) => c.slug === slug) || characters[0];
   const storageKey = `message:${character.slug}`;
+
+  useEffect(() => {
+    import("@/lib/log").then(m => m.logView(`/characters/${character.slug}`));
+  }, [character.slug]);
 
   useEffect(() => {
     const saved = localStorage.getItem(storageKey);
@@ -75,7 +59,30 @@ export default function CharacterDetailPage() {
       alert("Write a longer, meaningful message.");
       return;
     }
+
+    import("@/lib/ga").then((m) =>
+      m.gaEvent("begin_checkout", {
+        currency: "USD",
+        value: 3.99,
+        items: [
+          {
+            item_name: character.name,
+            item_id: character.slug
+          }
+        ]
+      })
+    );
+
     setShowPayment(true);
+
+    fetch("/api/log/event", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event_name: "checkout_started",
+        metadata: { slug: character.slug }
+      })
+    });
   }
 
   async function redirectToStripe() {
