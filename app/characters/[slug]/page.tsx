@@ -39,9 +39,7 @@ export default function CharacterDetailPage() {
       })
     });
 
-    import("@/lib/log").then((m) =>
-      m.logView(`/characters/${character.slug}`)
-    );
+    import("@/lib/log").then((m) => m.logView(`/characters/${character.slug}`));
   }, [character.slug]);
 
   useEffect(() => {
@@ -138,7 +136,7 @@ export default function CharacterDetailPage() {
         value={message}
         onChange={handleChange}
         maxLength={100}
-        placeholder="Hey John, wishing you a happy birthday!"
+        placeholder="Hey John, I hope you have an amazing birthday filled with joy!"
       />
 
       <p>{message.length}/100</p>
