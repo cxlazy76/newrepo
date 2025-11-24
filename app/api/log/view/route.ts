@@ -7,7 +7,7 @@ export async function POST(req: Request) {
   const hdrs = await headers();
   const ip = getIp(hdrs);
   const ua = hdrs.get("user-agent") || "";
-  
+
   const body = await req.json().catch(() => null);
   if (!body?.path) {
     return NextResponse.json({ error: "Missing path" }, { status: 400 });
@@ -17,8 +17,9 @@ export async function POST(req: Request) {
 
   await supabase.from("analytics_page_views").insert({
     path: body.path,
+    session_id: body.session_id || null,
     ip,
-    ua,
+    ua
   });
 
   return NextResponse.json({ ok: true });

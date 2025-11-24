@@ -15,6 +15,9 @@ export async function POST(req: Request) {
   await supabase.from("analytics_events").insert({
     event_name: body.event_name,
     session_id: body.session_id || null,
+    path: body.metadata?.path || null,
+    character: body.metadata?.character || null,
+    message_length: body.metadata?.length || null,
     metadata: body.metadata || null,
     ip: getIp(hdrs),
     ua: hdrs.get("user-agent") || ""
