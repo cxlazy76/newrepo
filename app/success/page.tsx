@@ -1,6 +1,7 @@
 "use client";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 import { Suspense } from "react";
 import { useEffect, useState } from "react";
@@ -12,6 +13,10 @@ function SuccessContent() {
 
   const [status, setStatus] = useState<"error" | "processing" | "ready">("processing");
   const [videoUrl, setVideoUrl] = useState("");
+
+  useEffect(() => {
+    window.history.scrollRestoration = "manual";
+  }, []);
 
   useEffect(() => {
     import("@/lib/log").then(m => m.logView("/success"));
@@ -35,7 +40,10 @@ function SuccessContent() {
         return;
       }
 
-      const res = await fetch(`/api/video/status?session_id=${session_id}`);
+      const res = await fetch(`/api/video/status?session_id=${session_id}`, {
+        cache: "no-store"
+      });
+
       if (!res) {
         setStatus("error");
         return;
@@ -50,7 +58,10 @@ function SuccessContent() {
       }
 
       if (data.status === "finished") {
-        const u = await fetch(`/api/video/url?id=${data.id}`);
+        const u = await fetch(`/api/video/url?id=${data.id}`, {
+          cache: "no-store"
+        });
+
         if (!u) {
           setStatus("error");
           return;
@@ -114,9 +125,12 @@ function SuccessContent() {
 }
 
 export default function SuccessPage() {
+  const searchParams = useSearchParams();
+  const key = searchParams.get("session_id") || "default";
+
   return (
     <Suspense fallback={<main>Processing</main>}>
-      <SuccessContent />
+      <SuccessContent key={key} />
     </Suspense>
   );
 }
