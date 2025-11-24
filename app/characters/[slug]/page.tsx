@@ -14,6 +14,7 @@ export default function CharacterDetailPage() {
   const [showPayment, setShowPayment] = useState(false);
 
   useEffect(() => {
+    window.history.scrollRestoration = "manual";
     window.onpageshow = function (event) {
       if (event.persisted) {
         window.location.reload();
@@ -47,7 +48,9 @@ export default function CharacterDetailPage() {
       })
     });
 
-    import("@/lib/log").then((m) => m.logView(`/characters/${character.slug}`));
+    import("@/lib/log").then((m) =>
+      m.logView(`/characters/${character.slug}`)
+    );
   }, [character.slug]);
 
   useEffect(() => {
