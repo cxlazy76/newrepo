@@ -21,7 +21,6 @@
     "paths": {
       "@/*": ["./*"]
     },
-    "types": ["vitest/globals", "node", "jsdom"],
   },
   "include": [
     "next-env.d.ts",

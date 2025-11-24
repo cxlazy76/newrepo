@@ -23,6 +23,16 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  await fetch(`${process.env.NEXT_PUBLIC_URL}/api/log/event`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      event_name: "video_url_requested",
+      session_id: null,
+      metadata: { id }
+    })
+  });
+
   const supabase = supabaseServer();
 
   const { data: row } = await supabase
@@ -53,9 +63,7 @@ export async function GET(req: Request) {
 
   const { data: files, error: listErr } = await supabase.storage
     .from("videos")
-    .list("", {
-      search: fileName
-    });
+    .list("", { search: fileName });
 
   if (listErr || !files || files.length === 0) {
     await supabase

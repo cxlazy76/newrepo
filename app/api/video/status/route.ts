@@ -19,6 +19,16 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  await fetch(`${process.env.NEXT_PUBLIC_URL}/api/log/event`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      event_name: "video_status_checked",
+      session_id,
+      metadata: null
+    })
+  });
+
   const supabase = supabaseServer();
 
   const { data: row } = await supabase

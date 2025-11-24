@@ -1,13 +1,21 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 export default function CharactersPage() {
   const router = useRouter();
+  const logged = useRef(false);
 
   useEffect(() => {
-    import("@/lib/log").then(m => m.logView("/characters"));
+    if (logged.current) return;
+    logged.current = true;
+
+    fetch("/api/log/view", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: "/characters" })
+    });
   }, []);
 
   const characters = [
@@ -22,7 +30,6 @@ export default function CharactersPage() {
     <main>
       <h1>Step 1 of 2</h1>
       <h2>Choose your character</h2>
-
       {characters.map((c) => (
         <div key={c.path}>
           <button onClick={() => router.push(c.path)}>{c.name}</button>

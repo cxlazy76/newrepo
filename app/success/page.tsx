@@ -3,7 +3,7 @@
 export const dynamic = "force-dynamic";
 
 import { Suspense } from "react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
 function SuccessContent() {
@@ -12,9 +12,17 @@ function SuccessContent() {
 
   const [status, setStatus] = useState<"error" | "processing" | "ready">("processing");
   const [videoUrl, setVideoUrl] = useState("");
+  const logged = useRef(false);
 
   useEffect(() => {
-    import("@/lib/log").then(m => m.logView("/success"));
+    if (logged.current) return;
+    logged.current = true;
+
+    fetch("/api/log/view", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ path: "/success" })
+    });
   }, []);
 
   useEffect(() => {
@@ -80,9 +88,7 @@ function SuccessContent() {
           currency: "USD",
           value: 3.99,
           transaction_id: session_id,
-          items: [
-            { item_name: "AI Greeting Video", item_id: session_id }
-          ]
+          items: [{ item_name: "AI Greeting Video", item_id: session_id }]
         })
       );
 
