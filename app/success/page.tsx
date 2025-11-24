@@ -14,10 +14,6 @@ function SuccessContent() {
   const [videoUrl, setVideoUrl] = useState("");
 
   useEffect(() => {
-    window.history.scrollRestoration = "manual";
-  }, []);
-
-  useEffect(() => {
     import("@/lib/log").then(m => m.logView("/success"));
   }, []);
 
@@ -39,10 +35,7 @@ function SuccessContent() {
         return;
       }
 
-      const res = await fetch(`/api/video/status?session_id=${session_id}`, {
-        cache: "no-store"
-      });
-
+      const res = await fetch(`/api/video/status?session_id=${session_id}`);
       if (!res) {
         setStatus("error");
         return;
@@ -57,10 +50,7 @@ function SuccessContent() {
       }
 
       if (data.status === "finished") {
-        const u = await fetch(`/api/video/url?id=${data.id}`, {
-          cache: "no-store"
-        });
-
+        const u = await fetch(`/api/video/url?id=${data.id}`);
         if (!u) {
           setStatus("error");
           return;
@@ -124,12 +114,9 @@ function SuccessContent() {
 }
 
 export default function SuccessPage() {
-  const searchParams = useSearchParams();
-  const key = searchParams.get("session_id") || "default";
-
   return (
     <Suspense fallback={<main>Processing</main>}>
-      <SuccessContent key={key} />
+      <SuccessContent />
     </Suspense>
   );
 }
