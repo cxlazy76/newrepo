@@ -6,13 +6,6 @@ import WalletPayButton from "@/components/WalletPayButton";
 import { sanitize, isInvalidMessage } from "@/lib/validation";
 
 export default function CharacterDetailPage() {
-  const router = useRouter();
-  const params = useParams();
-  const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
-
-  const [message, setMessage] = useState("");
-  const [showPayment, setShowPayment] = useState(false);
-
   useEffect(() => {
     window.history.scrollRestoration = "manual";
     window.onpageshow = function (event) {
@@ -21,6 +14,13 @@ export default function CharacterDetailPage() {
       }
     };
   }, []);
+
+  const router = useRouter();
+  const params = useParams();
+  const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
+
+  const [message, setMessage] = useState("");
+  const [showPayment, setShowPayment] = useState(false);
 
   const characters = [
     { name: "Santa Claus", slug: "santa" },
@@ -48,9 +48,7 @@ export default function CharacterDetailPage() {
       })
     });
 
-    import("@/lib/log").then((m) =>
-      m.logView(`/characters/${character.slug}`)
-    );
+    import("@/lib/log").then((m) => m.logView(`/characters/${character.slug}`));
   }, [character.slug]);
 
   useEffect(() => {

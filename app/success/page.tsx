@@ -1,15 +1,12 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
+import { Suspense } from "react";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 
-export default function SuccessClient() {
-  const params = useSearchParams();
-  const session_id = params.get("session_id");
-
-  const [status, setStatus] = useState<"error" | "processing" | "ready">("processing");
-  const [videoUrl, setVideoUrl] = useState("");
-
+function SuccessContent() {
   useEffect(() => {
     window.history.scrollRestoration = "manual";
     window.onpageshow = function (event) {
@@ -18,6 +15,12 @@ export default function SuccessClient() {
       }
     };
   }, []);
+
+  const params = useSearchParams();
+  const session_id = params.get("session_id");
+
+  const [status, setStatus] = useState<"error" | "processing" | "ready">("processing");
+  const [videoUrl, setVideoUrl] = useState("");
 
   useEffect(() => {
     import("@/lib/log").then(m => m.logView("/success"));
@@ -41,10 +44,7 @@ export default function SuccessClient() {
         return;
       }
 
-      const res = await fetch(`/api/video/status?session_id=${session_id}`, {
-        cache: "no-store"
-      });
-
+      const res = await fetch(`/api/video/status?session_id=${session_id}`);
       if (!res) {
         setStatus("error");
         return;
@@ -59,10 +59,7 @@ export default function SuccessClient() {
       }
 
       if (data.status === "finished") {
-        const u = await fetch(`/api/video/url?id=${data.id}`, {
-          cache: "no-store"
-        });
-
+        const u = await fetch(`/api/video/url?id=${data.id}`);
         if (!u) {
           setStatus("error");
           return;
@@ -123,4 +120,12 @@ export default function SuccessClient() {
     );
 
   return <main>Processing</main>;
+}
+
+export default function SuccessPage() {
+  return (
+    <Suspense fallback={<main>Processing</main>}>
+      <SuccessContent />
+    </Suspense>
+  );
 }
