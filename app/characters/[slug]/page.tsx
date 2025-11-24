@@ -30,7 +30,24 @@ export default function CharacterDetailPage() {
   const storageKey = `message:${character.slug}`;
 
   useEffect(() => {
-    import("@/lib/log").then(m => m.logView(`/characters/${character.slug}`));
+    import("@/lib/ga").then((m) =>
+      m.gaEvent("character_view", {
+        character: character.slug
+      })
+    );
+
+    fetch("/api/log/event", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        event_name: "character_view",
+        metadata: { slug: character.slug }
+      })
+    });
+
+    import("@/lib/log").then((m) =>
+      m.logView(`/characters/${character.slug}`)
+    );
   }, [character.slug]);
 
   useEffect(() => {
@@ -39,10 +56,35 @@ export default function CharacterDetailPage() {
     else setMessage("");
   }, [storageKey]);
 
+  const [hasLoggedMessageEvent, setHasLoggedMessageEvent] = useState(false);
+
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const clean = sanitize(e.target.value);
     setMessage(clean);
     localStorage.setItem(storageKey, clean);
+
+    if (!hasLoggedMessageEvent && clean.length >= 5) {
+      setHasLoggedMessageEvent(true);
+
+      import("@/lib/ga").then((m) =>
+        m.gaEvent("message_written", {
+          character: character.slug,
+          length: clean.length
+        })
+      );
+
+      fetch("/api/log/event", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event_name: "message_written",
+          metadata: {
+            slug: character.slug,
+            length: clean.length
+          }
+        })
+      });
+    }
   };
 
   function isInvalidMessage(msg: string) {
@@ -73,8 +115,6 @@ export default function CharacterDetailPage() {
       })
     );
 
-    setShowPayment(true);
-
     fetch("/api/log/event", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -83,6 +123,8 @@ export default function CharacterDetailPage() {
         metadata: { slug: character.slug }
       })
     });
+
+    setShowPayment(true);
   }
 
   async function redirectToStripe() {
