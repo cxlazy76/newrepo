@@ -3,13 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import WalletPayButton from "@/components/WalletPayButton";
-
-const sanitize = (input: string) => {
-  if (typeof input !== "string") return "";
-  let x = input.replace(/<[^>]*>/g, "");
-  if (x.length > 100) x = x.slice(0, 100);
-  return x;
-};
+import { sanitize, isInvalidMessage } from "@/lib/validation";
 
 export default function CharacterDetailPage() {
   const router = useRouter();
@@ -86,15 +80,6 @@ export default function CharacterDetailPage() {
       });
     }
   };
-
-  function isInvalidMessage(msg: string) {
-    const normalized = msg.replace(/\s+/g, " ").trim();
-    if (normalized.length < 20) return true;
-    if (!/[a-zA-Z]/.test(normalized)) return true;
-    if (/^(.)\1+$/.test(normalized)) return true;
-    if (/^[a-z]{2,}$/.test(normalized) && normalized.length < 25) return true;
-    return false;
-  }
 
   function handleGenerate() {
     if (isInvalidMessage(message)) {

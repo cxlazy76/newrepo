@@ -4,18 +4,11 @@ import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { rateLimit } from "@/lib/rate-limiter";
 import { getIp } from "@/lib/get-ip";
+import { sanitize } from "@/lib/validation";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-10-29.clover",
 });
-
-const sanitize = (input: string) => {
-  if (typeof input !== "string") return "";
-  let x = input.replace(/<[^>]*>/g, "");
-  x = x.replace(/\s+/g, " ").trim();
-  if (x.length > 100) x = x.slice(0, 100);
-  return x;
-};
 
 export async function POST(req: Request) {
   const hdrs = await headers();

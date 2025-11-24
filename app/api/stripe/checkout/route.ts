@@ -4,26 +4,11 @@ import { rateLimit } from "@/lib/rate-limiter";
 import { headers } from "next/headers";
 import { getIp } from "@/lib/get-ip";
 import { jsonError } from "@/lib/api";
+import { sanitize, isInvalidMessage } from "@/lib/validation";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-10-29.clover",
 });
-
-const sanitize = (input: string) => {
-  if (typeof input !== "string") return "";
-  let x = input.replace(/<[^>]*>/g, "");
-  x = x.replace(/\s+/g, " ").trim();
-  if (x.length > 100) x = x.slice(0, 100);
-  return x;
-};
-
-function invalidMessage(msg: string) {
-  if (msg.length < 20) return true;
-  if (!/[a-zA-Z]/.test(msg)) return true;
-  if (/^(.)\1+$/.test(msg)) return true;
-  if (/^[a-z]{2,}$/.test(msg) && msg.length < 25) return true;
-  return false;
-}
 
 export async function POST(req: Request) {
   const hdrs = await headers();
@@ -44,7 +29,7 @@ export async function POST(req: Request) {
   if (!cleanMessage || !cleanCharacter)
     return jsonError("Missing message or character");
 
-  if (invalidMessage(cleanMessage))
+  if (isInvalidMessage(cleanMessage))
     return jsonError("Message invalid");
 
   const session = await stripe.checkout.sessions.create({
