@@ -13,6 +13,14 @@ export default function CharacterDetailPage() {
   const [message, setMessage] = useState("");
   const [showPayment, setShowPayment] = useState(false);
 
+  useEffect(() => {
+    window.onpageshow = function (event) {
+      if (event.persisted) {
+        window.location.reload();
+      }
+    };
+  }, []);
+
   const characters = [
     { name: "Santa Claus", slug: "santa" },
     { name: "Alien", slug: "alien" },
