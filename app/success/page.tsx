@@ -105,6 +105,8 @@ function SuccessContent() {
       Object.keys(localStorage).forEach((k) => {
         if (k.startsWith("message:")) localStorage.removeItem(k);
       });
+
+      localStorage.setItem("clear_all_messages", "1");
     }
   }, [status, session_id]);
 

@@ -137,7 +137,7 @@ export default function CharacterDetailPage() {
         value={message}
         onChange={handleChange}
         maxLength={100}
-        placeholder="Hey John, wishing you a happy birthday!"
+        placeholder="Hey John, I hope you have an amazing birthday today!"
       />
 
       <p>{message.length}/100</p>
