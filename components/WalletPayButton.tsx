@@ -27,32 +27,13 @@ export default function WalletPayButton() {
       if (canPay) {
         setPaymentRequest(pr);
 
-        fetch("/api/log/event", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            event_name: "wallet_can_use",
-            session_id: null,
-            metadata: null
-          })
-        });
-
         pr.on("paymentmethod", async (event: any) => {
-          fetch("/api/log/event", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              event_name: "wallet_payment_started",
-              session_id: null,
-              metadata: null
-            })
-          });
-
           const res = await fetch("/api/payment", {
             method: "POST"
           });
 
           const { clientSecret } = await res.json();
+
           const stripeClient = await stripePromise;
 
           const { error } = await stripeClient!.confirmCardPayment(
@@ -62,32 +43,7 @@ export default function WalletPayButton() {
             }
           );
 
-          if (error) {
-            fetch("/api/log/event", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                event_name: "wallet_payment_failed",
-                session_id: null,
-                metadata: { message: error.message }
-              })
-            });
-
-            event.complete("fail");
-            return;
-          }
-
-          fetch("/api/log/event", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              event_name: "wallet_payment_succeeded",
-              session_id: null,
-              metadata: null
-            })
-          });
-
-          event.complete("success");
+          event.complete(error ? "fail" : "success");
         });
       }
     }

@@ -1,9 +1,15 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import WalletPayButton from "@/components/WalletPayButton";
-import { sanitize, isInvalidMessage } from "@/lib/validation";
+
+const sanitize = (input: string) => {
+  if (typeof input !== "string") return "";
+  let x = input.replace(/<[^>]*>/g, "");
+  if (x.length > 100) x = x.slice(0, 100);
+  return x;
+};
 
 export default function CharacterDetailPage() {
   const router = useRouter();
@@ -12,7 +18,6 @@ export default function CharacterDetailPage() {
 
   const [message, setMessage] = useState("");
   const [showPayment, setShowPayment] = useState(false);
-  const logged = useRef(false);
 
   const characters = [
     { name: "Santa Claus", slug: "santa" },
@@ -25,11 +30,10 @@ export default function CharacterDetailPage() {
   const storageKey = `message:${character.slug}`;
 
   useEffect(() => {
-    if (logged.current) return;
-    logged.current = true;
-
     import("@/lib/ga").then((m) =>
-      m.gaEvent("character_view", { character: character.slug })
+      m.gaEvent("character_view", {
+        character: character.slug
+      })
     );
 
     fetch("/api/log/event", {
@@ -41,11 +45,9 @@ export default function CharacterDetailPage() {
       })
     });
 
-    fetch("/api/log/view", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ path: `/characters/${character.slug}` })
-    });
+    import("@/lib/log").then((m) =>
+      m.logView(`/characters/${character.slug}`)
+    );
   }, [character.slug]);
 
   useEffect(() => {
@@ -85,6 +87,15 @@ export default function CharacterDetailPage() {
     }
   };
 
+  function isInvalidMessage(msg: string) {
+    const normalized = msg.replace(/\s+/g, " ").trim();
+    if (normalized.length < 20) return true;
+    if (!/[a-zA-Z]/.test(normalized)) return true;
+    if (/^(.)\1+$/.test(normalized)) return true;
+    if (/^[a-z]{2,}$/.test(normalized) && normalized.length < 25) return true;
+    return false;
+  }
+
   function handleGenerate() {
     if (isInvalidMessage(message)) {
       alert("Write a longer, meaningful message.");
@@ -95,7 +106,12 @@ export default function CharacterDetailPage() {
       m.gaEvent("begin_checkout", {
         currency: "USD",
         value: 3.99,
-        items: [{ item_name: character.name, item_id: character.slug }]
+        items: [
+          {
+            item_name: character.name,
+            item_id: character.slug
+          }
+        ]
       })
     );
 
@@ -149,7 +165,9 @@ export default function CharacterDetailPage() {
           <div onClick={(e) => e.stopPropagation()}>
             <h2>Complete your payment</h2>
             <p>3.99 USD</p>
+
             <WalletPayButton />
+
             <button onClick={redirectToStripe}>Pay now</button>
             <button onClick={() => setShowPayment(false)}>Cancel</button>
           </div>

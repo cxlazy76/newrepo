@@ -4,11 +4,18 @@ import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { rateLimit } from "@/lib/rate-limiter";
 import { getIp } from "@/lib/get-ip";
-import { sanitize } from "@/lib/validation";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-10-29.clover"
+  apiVersion: "2025-10-29.clover",
 });
+
+const sanitize = (input: string) => {
+  if (typeof input !== "string") return "";
+  let x = input.replace(/<[^>]*>/g, "");
+  x = x.replace(/\s+/g, " ").trim();
+  if (x.length > 100) x = x.slice(0, 100);
+  return x;
+};
 
 export async function POST(req: Request) {
   const hdrs = await headers();
@@ -21,9 +28,8 @@ export async function POST(req: Request) {
   }
 
   const signature = req.headers.get("stripe-signature");
-  if (!signature) {
-    return NextResponse.json({ error: "Invalid" }, { status: 400 });
-  }
+  if (!signature)
+    return NextResponse.json({ error: "Missing signature" }, { status: 400 });
 
   const rawBody = Buffer.from(await req.arrayBuffer());
 
@@ -35,7 +41,7 @@ export async function POST(req: Request) {
       process.env.STRIPE_WEBHOOK_SECRET!
     );
   } catch {
-    return NextResponse.json({ error: "Invalid" }, { status: 400 });
+    return NextResponse.json({ error: "Invalid signature" }, { status: 400 });
   }
 
   if (event.type !== "checkout.session.completed") {
@@ -45,7 +51,7 @@ export async function POST(req: Request) {
   const session = event.data.object;
 
   if (session.payment_status !== "paid") {
-    return NextResponse.json({ error: "Invalid" }, { status: 400 });
+    return NextResponse.json({ error: "Payment not completed" }, { status: 400 });
   }
 
   const session_id = session.id;
@@ -54,7 +60,7 @@ export async function POST(req: Request) {
   const email = session.customer_details?.email;
 
   if (!session_id || !message || !character || !email) {
-    return NextResponse.json({ error: "Invalid" }, { status: 400 });
+    return NextResponse.json({ error: "Missing metadata" }, { status: 400 });
   }
 
   const supabase = supabaseServer();
