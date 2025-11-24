@@ -106,7 +106,7 @@ function SuccessContent() {
         if (k.startsWith("message:")) localStorage.removeItem(k);
       });
 
-      localStorage.setItem("clear_all_messages", "1");
+      localStorage.setItem("messages_cleared", "1");
     }
   }, [status, session_id]);
 
