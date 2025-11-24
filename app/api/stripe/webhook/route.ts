@@ -82,6 +82,7 @@ export async function POST(req: Request) {
     email,
     status: "paid",
     video_url: null,
+    expires_at: null,
     ip_address: session.metadata?.customer_ip ?? null,
     user_agent: session.metadata?.customer_ua ?? null
   });

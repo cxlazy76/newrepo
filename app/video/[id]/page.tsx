@@ -25,7 +25,7 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
 
   const { data: row } = await supabase
     .from("videos")
-    .select("video_url, status")
+    .select("video_url, status, expires_at")
     .eq("id", id)
     .single();
 
@@ -33,16 +33,45 @@ export default async function VideoPage({ params }: { params: Promise<{ id: stri
   if (row.status !== "finished") notFound();
   if (!row.video_url.endsWith(".mp4")) notFound();
 
-  const { data: signed } = await supabase.storage
-    .from("videos")
-    .createSignedUrl(row.video_url, 60 * 60 * 24 * 7);
+  const now = Date.now();
+  const expiry = row.expires_at ? new Date(row.expires_at).getTime() : 0;
 
-  if (!signed?.signedUrl) notFound();
+  if (expiry && expiry > now) {
+    const remaining = Math.floor((expiry - now) / 1000);
+
+    const { data: signedValid } = await supabase.storage
+      .from("videos")
+      .createSignedUrl(row.video_url, remaining);
+
+    if (!signedValid?.signedUrl) notFound();
+
+    return (
+      <>
+        <video controls src={signedValid.signedUrl} />
+        <a href={signedValid.signedUrl} download>Download</a>
+      </>
+    );
+  }
+
+  const newTtl = 60 * 60 * 24 * 7;
+
+  const { data: signedNew } = await supabase.storage
+    .from("videos")
+    .createSignedUrl(row.video_url, newTtl);
+
+  if (!signedNew?.signedUrl) notFound();
+
+  await supabase
+    .from("videos")
+    .update({
+      expires_at: new Date(Date.now() + newTtl * 1000)
+    })
+    .eq("id", id);
 
   return (
     <>
-      <video controls src={signed.signedUrl} />
-      <a href={signed.signedUrl} download>Download</a>
+      <video controls src={signedNew.signedUrl} />
+      <a href={signedNew.signedUrl} download>Download</a>
     </>
   );
 }

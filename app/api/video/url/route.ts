@@ -27,7 +27,7 @@ export async function GET(req: Request) {
 
   const { data: row } = await supabase
     .from("videos")
-    .select("video_url, status")
+    .select("video_url, status, expires_at")
     .eq("id", id)
     .single();
 
@@ -35,7 +35,6 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  // Allowed extensions
   const allowedExt = [".mp4", ".mov", ".webm", ".m4v"];
   const lower = row.video_url.toLowerCase();
   const hasExt = allowedExt.some(ext => lower.endsWith(ext));
@@ -49,7 +48,6 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  // REAL validation using Supabase list() → always correct
   const pathParts = row.video_url.split("/");
   const fileName = pathParts[pathParts.length - 1];
 
@@ -80,14 +78,41 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  // File is valid → return signed URL
-  const { data: signed } = await supabase.storage
-    .from("videos")
-    .createSignedUrl(row.video_url, 60 * 60 * 24 * 7);
+  const now = Date.now();
+  const expiry = row.expires_at ? new Date(row.expires_at).getTime() : 0;
 
-  if (!signed?.signedUrl) {
+  if (expiry && expiry > now) {
+    const remaining = Math.floor((expiry - now) / 1000);
+
+    const { data: signedValid } = await supabase.storage
+      .from("videos")
+      .createSignedUrl(row.video_url, remaining);
+
+    if (!signedValid?.signedUrl) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ signedUrl: signedValid.signedUrl });
+  }
+
+  const newTtl = 60 * 60 * 24 * 7;
+
+  const { data: signedNew } = await supabase.storage
+    .from("videos")
+    .createSignedUrl(row.video_url, newTtl);
+
+  if (!signedNew?.signedUrl) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  return NextResponse.json({ signedUrl: signed.signedUrl });
+  await supabase
+    .from("videos")
+    .update({
+      expires_at: new Date(Date.now() + newTtl * 1000)
+    })
+    .eq("id", id);
+
+  return NextResponse.json({
+    signedUrl: signedNew.signedUrl
+  });
 }
