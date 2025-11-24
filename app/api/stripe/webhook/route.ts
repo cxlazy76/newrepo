@@ -89,8 +89,11 @@ export async function POST(req: Request) {
 
   await fetch(process.env.N8N_WEBHOOK_URL!, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ session_id }),
+    headers: {
+      "Content-Type": "application/json",
+      "x-internal-secret": process.env.N8N_SECRET ?? ""
+    },
+    body: JSON.stringify({ session_id })
   });
 
   return NextResponse.json({ received: true });
