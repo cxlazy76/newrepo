@@ -1,170 +1,182 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter, useParams } from "next/navigation";
-import WalletPayButton from "@/components/WalletPayButton";
-import { sanitize, isInvalidMessage } from "@/lib/validation";
+import { use, useState } from "react";
+import { CHARACTERS } from "../../../constants";
+import { Character } from "../../../types";
 
-export default function CharacterDetailPage() {
-  useEffect(() => {
-    window.history.scrollRestoration = "manual";
-    window.onpageshow = function (event) {
-      if (event.persisted) {
-        window.location.reload();
-      }
-    };
-  }, []);
-
-  const router = useRouter();
-  const params = useParams();
-  const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
-
-  const [message, setMessage] = useState("");
-  const [showPayment, setShowPayment] = useState(false);
-
-  const characters = [
-    { name: "Santa Claus", slug: "santa" },
-    { name: "Alien", slug: "alien" },
-    { name: "Monk", slug: "monk" },
-    { name: "Tribal Man", slug: "tribal-man" }
-  ];
-
-  const character = characters.find((c) => c.slug === slug) || characters[0];
-  const storageKey = `message:${character.slug}`;
-
-  useEffect(() => {
-    import("@/lib/ga").then((m) =>
-      m.gaEvent("character_view", {
-        character: character.slug
-      })
-    );
-
-    fetch("/api/log/event", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        event_name: "character_view",
-        metadata: { slug: character.slug }
-      })
-    });
-
-    import("@/lib/log").then((m) => m.logView(`/characters/${character.slug}`));
-  }, [character.slug]);
-
-  useEffect(() => {
-    const saved = localStorage.getItem(storageKey);
-    if (saved) setMessage(saved);
-    else setMessage("");
-  }, [storageKey]);
-
-  const [hasLoggedMessageEvent, setHasLoggedMessageEvent] = useState(false);
-
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    const clean = sanitize(e.target.value);
-    setMessage(clean);
-    localStorage.setItem(storageKey, clean);
-
-    if (!hasLoggedMessageEvent && clean.length >= 5) {
-      setHasLoggedMessageEvent(true);
-
-      import("@/lib/ga").then((m) =>
-        m.gaEvent("message_written", {
-          character: character.slug,
-          length: clean.length
-        })
-      );
-
-      fetch("/api/log/event", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          event_name: "message_written",
-          metadata: {
-            slug: character.slug,
-            length: clean.length
-          }
-        })
-      });
-    }
-  };
-
-  function handleGenerate() {
-    if (isInvalidMessage(message)) {
-      alert("Write a longer, meaningful message.");
-      return;
-    }
-
-    import("@/lib/ga").then((m) =>
-      m.gaEvent("begin_checkout", {
-        currency: "USD",
-        value: 3.99,
-        items: [
-          {
-            item_name: character.name,
-            item_id: character.slug
-          }
-        ]
-      })
-    );
-
-    fetch("/api/log/event", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        event_name: "checkout_started",
-        metadata: { slug: character.slug }
-      })
-    });
-
-    setShowPayment(true);
-  }
-
-  async function redirectToStripe() {
-    const res = await fetch("/api/stripe/checkout", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message,
-        character: character.slug
-      })
-    });
-
-    const data = await res.json();
-    if (data.url) window.location.href = data.url;
-    else alert("Stripe error");
-  }
+const AccordionItem = ({
+  title,
+  children
+}: {
+  title: string;
+  children: React.ReactNode;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <main>
-      <button onClick={() => router.push("/characters")}>Back</button>
+    <div className="border border-gray-200 rounded-xl overflow-hidden mb-3 bg-white shadow-sm">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full p-4 text-left flex items-center justify-between hover:bg-gray-50 transition-colors"
+      >
+        <div className="flex items-center gap-3 text-gray-900">
+          <svg className="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M8 5v14l11-7z" />
+          </svg>
+          <span className="font-medium">{title}</span>
+        </div>
+        <svg
+          className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${
+            isOpen ? "rotate-180" : ""
+          }`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      <div
+        className={`bg-gray-50 transition-all duration-300 ease-in-out ${
+          isOpen
+            ? "max-h-40 opacity-100 p-4 border-t border-gray-100"
+            : "max-h-0 opacity-0 overflow-hidden"
+        }`}
+      >
+        <p className="text-gray-600 text-sm leading-relaxed">{children}</p>
+      </div>
+    </div>
+  );
+};
 
-      <h1>Step 2 of 2</h1>
-      <h2>Generate video for: {character.name}</h2>
+export default function CharacterPage({
+  params
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = use(params);
 
-      <textarea
-        value={message}
-        onChange={handleChange}
-        maxLength={100}
-        placeholder="Hey John, I hope you have an amazing birthday filled with joy!"
-      />
+  const character: Character | undefined = CHARACTERS.find(
+    (c: Character) => c.id === slug
+  );
 
-      <p>{message.length}/100</p>
+  const [message, setMessage] = useState("");
+  const [videoUrl, setVideoUrl] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
-      <button onClick={handleGenerate}>Generate video</button>
+  if (!character) {
+    return <div className="p-10 text-xl">Character not found</div>;
+  }
 
-      {showPayment && (
-        <div onClick={() => setShowPayment(false)}>
-          <div onClick={(e) => e.stopPropagation()}>
-            <h2>Complete your payment</h2>
-            <p>3.99 USD</p>
+  const handleGenerateVideo = () => {
+    if (!message.trim()) return;
+    setIsGenerating(true);
 
-            <WalletPayButton />
+    setTimeout(() => {
+      setVideoUrl(null);
+      setIsGenerating(false);
+    }, 1500);
+  };
 
-            <button onClick={redirectToStripe}>Pay now</button>
-            <button onClick={() => setShowPayment(false)}>Cancel</button>
+  return (
+    <div className="min-h-screen bg-white pt-28 pb-12">
+      <div className="max-w-5xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-20">
+
+        {/* STEP 2 PILLS — ONLY SHOWN ON GENERATE VIDEO PAGE */}
+        <div className="col-span-2 mb-6">
+          <div className="flex justify-center">
+            <div className="inline-flex bg-gray-100 rounded-full p-1">
+              <button
+                className="px-6 py-2 rounded-full text-sm font-medium text-gray-600"
+              >
+                Step 1 : Pick a Character
+              </button>
+              <button
+                className="px-6 py-2 rounded-full text-sm font-medium bg-white shadow-sm text-gray-900"
+              >
+                Step 2 : Generate a video
+              </button>
+            </div>
           </div>
         </div>
-      )}
-    </main>
+
+        {/* LEFT — CHARACTER PREVIEW */}
+        <div className="w-full max-w-sm mx-auto lg:max-w-none">
+          <div className="relative aspect-[9/16] bg-gray-100 rounded-[2rem] overflow-hidden shadow-2xl border-4 border-white">
+
+            {videoUrl ? (
+              <video
+                src={videoUrl}
+                controls
+                autoPlay
+                loop
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <>
+                <div className={`absolute inset-0 ${character.color} flex items-center justify-center`}>
+                  <span className="text-[8rem] md:text-[10rem] drop-shadow-xl">
+                    {character.image}
+                  </span>
+                </div>
+              </>
+            )}
+
+            {isGenerating && (
+              <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center text-white p-6 z-20">
+                <div className="w-12 h-12 border-4 border-indigo-500 border-t-white rounded-full animate-spin mb-4"></div>
+                <p className="text-lg font-medium">Generating preview...</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* RIGHT — MESSAGE INPUT AND FAQ */}
+        <div className="flex flex-col gap-8 lg:pt-4">
+          <div>
+            <label className="block text-gray-900 text-lg font-medium mb-4">Type your message</label>
+            <div className="relative">
+              <textarea
+                className="w-full h-48 bg-white border border-gray-200 text-gray-900 rounded-2xl p-6 text-lg shadow-sm resize-none focus:ring-2 focus:ring-indigo-500 placeholder-gray-400"
+                placeholder="Hey John, I wish you a happy birthday!"
+                maxLength={100}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                disabled={isGenerating}
+              />
+              <span className="absolute bottom-4 right-4 text-gray-500 text-sm">
+                {message.length}/100
+              </span>
+            </div>
+          </div>
+
+          <button
+            onClick={handleGenerateVideo}
+            disabled={isGenerating || !message.trim()}
+            className={`w-full text-white text-xl font-bold py-4 rounded-xl shadow-lg ${
+              isGenerating || !message.trim()
+                ? "bg-indigo-400 cursor-not-allowed"
+                : "bg-indigo-600 hover:bg-indigo-700"
+            }`}
+          >
+            {isGenerating ? "Generating..." : `Generate video with ${character.name}`}
+          </button>
+
+          <div className="space-y-2 mt-4">
+            <AccordionItem title="What will I actually get?">
+              You will get a personalized video of {character.name} speaking your message.
+            </AccordionItem>
+
+            <AccordionItem title="Do I need to pay before seeing the video?">
+              No, you can preview for free.
+            </AccordionItem>
+
+            <AccordionItem title="Will I be able to download or share it?">
+              Yes, once generated you can download or share it.
+            </AccordionItem>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
