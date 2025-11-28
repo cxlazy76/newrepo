@@ -7,9 +7,7 @@ import React from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 
-type Router = {
-  push: (path: string) => void;
-};
+type Router = { push: (path: string) => void };
 
 interface SimpleImageProps {
   src: string;
@@ -47,9 +45,9 @@ export default function App() {
   useLogger();
 
   const videoUrls = [
-    "https://placehold.co/300x600/E5FF00/121212?text=Video+1",
-    "https://placehold.co/300x600/D4EE00/121212?text=Video+2",
-    "https://placehold.co/300x600/C3DD00/121212?text=Video+3"
+    "https://ojhpedsolocvnxjzqymj.supabase.co/storage/v1/object/sign/videos/sample1.mp4?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85MzRiYzkzMy1kNjI4LTRlMzEtYjc1OS00NmU4MDZiODU4ZjUiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJ2aWRlb3Mvc2FtcGxlMS5tcDQiLCJpYXQiOjE3NjQzMjE1NjMsImV4cCI6MTc2NDkyNjM2M30.iBkZoFjgp9u4tbBXCIeVYpoS1qvMF_SDoSrUSlcAQWY",
+    "https://ojhpedsolocvnxjzqymj.supabase.co/storage/v1/object/sign/videos/sample2.mp4?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85MzRiYzkzMy1kNjI4LTRlMzEtYjc1OS00NmU4MDZiODU4ZjUiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJ2aWRlb3Mvc2FtcGxlMi5tcDQiLCJpYXQiOjE3NjQzMjE1NjcsImV4cCI6MTc2NDkyNjM2N30.s03ATGIN_-txKcQJfXDa-Ii8SFV_nYH9L57EBM5ZP2I",
+    "https://ojhpedsolocvnxjzqymj.supabase.co/storage/v1/object/sign/videos/sample3.mp4?token=eyJraWQiOiJzdG9yYWdlLXVybC1zaWduaW5nLWtleV85MzRiYzkzMy1kNjI4LTRlMzEtYjc1OS00NmU4MDZiODU4ZjUiLCJhbGciOiJIUzI1NiJ9.eyJ1cmwiOiJ2aWRlb3Mvc2FtcGxlMy5tcDQiLCJpYXQiOjE3NjQzMjE1NzIsImV4cCI6MTc2NDkyNjM3Mn0.IPJ8ddAB7LllLkG9QmdyCu6SFgCqQfKUI1GjRj9Zyz0"
   ];
 
   const characterGridImageUrl = "https://placehold.co/1024x576/121212/ffffff?text=Character+Grid";
@@ -60,8 +58,6 @@ export default function App() {
       <Navbar />
 
       <main className="flex flex-col items-center justify-center bg-white text-gray-900 font-sans">
-
-        {/* HERO */}
         <section
           id="create-video"
           className="flex flex-col items-center justify-center text-center px-4 sm:px-6 pt-12 pb-16 w-full max-w-7xl"
@@ -96,7 +92,6 @@ export default function App() {
           </motion.button>
         </section>
 
-        {/* MOCK PHONE VIDEOS */}
         <section className="flex flex-col items-center justify-center pb-16 sm:pb-28 w-full">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl w-full px-4 sm:px-6">
             {videoUrls.map((src, index) => {
@@ -114,9 +109,14 @@ export default function App() {
                   className={`rounded-3xl border-2 border-gray-200 overflow-hidden shadow-lg ${rotations[index]} w-full`}
                   style={{ aspectRatio: "9 / 16" }}
                 >
-                  <div className="w-full h-full object-cover flex items-center justify-center bg-gray-100">
-                    <span className="text-gray-500 text-sm font-semibold">{`Mock ${index + 1}`}</span>
-                  </div>
+                  <video
+                    src={src}
+                    autoPlay
+                    muted
+                    loop
+                    playsInline
+                    className="w-full h-full object-cover"
+                  />
                 </motion.div>
               );
             })}
@@ -125,7 +125,6 @@ export default function App() {
 
         <hr className="w-full max-w-7xl border-gray-200 my-8 sm:my-10" />
 
-        {/* HOW IT WORKS */}
         <section id="how-it-works" className="flex flex-col items-center justify-center pb-16 sm:pb-28 w-full max-w-7xl">
           <div className="w-full px-4 sm:px-6 space-y-10">
             <div className="flex justify-center">
@@ -160,15 +159,12 @@ export default function App() {
 
         <hr className="w-full max-w-7xl border-gray-200 my-8 sm:my-10" />
 
-        {/* BLOG SECTION */}
         <section id="blog-section" className="flex flex-col items-center justify-center pb-16 sm:pb-28 w-full max-w-7xl">
           <div className="w-full px-4 sm:px-6 space-y-16 sm:space-y-20">
-
             <h2 className="text-3xl sm:text-4xl md:text-5xl font-[750] text-center leading-tight tracking-[-0.03em]">
               Latest News from the Blog
             </h2>
 
-            {/* BLOG ITEM 1 */}
             <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-16">
               <div className="flex-1 text-center lg:text-left order-2 lg:order-1">
                 <h2 className="text-3xl sm:text-4xl font-[750] mb-4 sm:mb-6 leading-tight">Choose Your Perfect Character</h2>
@@ -184,7 +180,6 @@ export default function App() {
               </div>
             </div>
 
-            {/* BLOG ITEM 2 */}
             <div className="flex flex-col lg:flex-row-reverse items-center gap-10 lg:gap-16">
               <div className="flex-1 text-center lg:text-left order-2 lg:order-1">
                 <h2 className="text-3xl sm:text-4xl font-[750] mb-4 sm:mb-6 leading-tight">Instant Video Generation</h2>
@@ -199,21 +194,16 @@ export default function App() {
                 </div>
               </div>
             </div>
-
           </div>
         </section>
 
         <hr className="w-full max-w-7xl border-gray-200 my-8 sm:my-10" />
 
-        {/* USERS TESTIMONIALS */}
         <section className="flex flex-col items-center justify-center pb-16 sm:pb-28 px-4 sm:px-6 w-full max-w-7xl">
-
           <div className="w-full max-w-6xl">
             <h2 className="text-3xl sm:text-4xl font-[750] text-center mb-10 sm:mb-12">Hear It From Our Users</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
-
-              {/* CARD 1 */}
               <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-gray-200 shadow-sm hover:shadow-lg transition-shadow">
                 <div className="flex gap-1 mb-4">{[...Array(5)].map((_, i) => <span key={i}>⭐</span>)}</div>
                 <h3 className="text-lg font-semibold mb-2">Game-changer for marketing</h3>
@@ -227,7 +217,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* CARD 2 */}
               <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-gray-200 shadow-sm hover:shadow-lg transition-shadow">
                 <div className="flex gap-1 mb-4">{[...Array(5)].map((_, i) => <span key={i}>⭐</span>)}</div>
                 <h3 className="text-lg font-semibold mb-2">Streamlined our workflow</h3>
@@ -241,7 +230,6 @@ export default function App() {
                 </div>
               </div>
 
-              {/* CARD 3 */}
               <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-gray-200 shadow-sm hover:shadow-lg transition-shadow">
                 <div className="flex gap-1 mb-4">{[...Array(5)].map((_, i) => <span key={i}>⭐</span>)}</div>
                 <h3 className="text-lg font-semibold mb-2">Incredible AI technology</h3>
@@ -256,15 +244,12 @@ export default function App() {
                   </div>
                 </div>
               </div>
-
             </div>
           </div>
-
         </section>
 
         <hr className="w-full max-w-7xl border-gray-200 my-8 sm:my-10" />
 
-        {/* CONTACT SECTION */}
         <section id="contact-us" className="flex flex-col items-center justify-center pb-16 sm:pb-28 px-4 sm:px-6 w-full max-w-7xl">
           <div className="w-full max-w-3xl text-center">
             <h2 className="text-3xl sm:text-4xl font-[750] text-center mb-4 sm:mb-6">Contact Us</h2>
@@ -286,17 +271,13 @@ export default function App() {
           </div>
         </section>
 
-        {/* FAQ SECTION */}
-        <section
-          className="flex flex-col items-center justify-center pb-16 sm:pb-28 px-4 sm:px-6 w-full max-w-7xl"
-        >
+        <section className="flex flex-col items-center justify-center pb-16 sm:pb-28 px-4 sm:px-6 w-full max-w-7xl">
           <div className="w-full max-w-3xl">
             <h2 className="text-3xl sm:text-4xl font-[750] text-center mb-10 sm:mb-12">
               Frequently Asked Questions
             </h2>
 
             <div className="flex flex-col gap-4">
-
               <details className="bg-white rounded-3xl overflow-hidden border-2 border-gray-200 group">
                 <summary className="px-6 py-5 sm:px-8 sm:py-6 text-lg sm:text-xl font-semibold cursor-pointer flex items-center justify-between gap-4 hover:bg-gray-50">
                   <span>What will I actually get?</span>
@@ -326,14 +307,11 @@ export default function App() {
                   Yes, high-quality download is available.
                 </div>
               </details>
-
             </div>
           </div>
         </section>
-
       </main>
 
-      {/* ✅ FOOTER COMPONENT INSERTED HERE */}
       <Footer />
     </>
   );
