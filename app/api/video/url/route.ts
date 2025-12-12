@@ -48,14 +48,8 @@ export async function GET(req: Request) {
 
   // Control the filename via Content-Disposition header
   if (filename) {
-    // Check if this is a direct download request (indicated by the presence of a filename)
-    const isDownload = url.searchParams.has('filename');
-    
-    // Use RFC 6266 encoding for filename support
-    const contentDisposition = isDownload 
-        ? `attachment; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`
-        : headers.get('Content-Disposition') || 'inline';
-
+    // Force attachment for download
+    const contentDisposition = `attachment; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`;
     headers.set('Content-Disposition', contentDisposition);
   }
   

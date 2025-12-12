@@ -10,24 +10,30 @@ export async function GET(req: Request) {
   const filename = url.searchParams.get("filename"); 
   
   if (!videoId || !UUID_REGEX.test(videoId)) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+    // Returns 404 if ID is missing or invalid UUID format
+    return NextResponse.json({ error: "Invalid video ID" }, { status: 404 });
   }
 
   const supabase = supabaseServer();
   
   // 1. Fetch the video record to get the storage path
-  const { data: row } = await supabase
+  const { data: row, error: dbError } = await supabase
     .from("videos")
     .select("video_url, status")
     .eq("id", videoId)
     .single();
-
-  if (!row || row.status !== "finished" || !row.video_url) {
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  
+  if (dbError) {
+    console.error("Database error fetching video:", dbError);
   }
 
-  // 2. Generate a fresh signed URL (or re-use a cached one)
-  const signedUrlTTL = 3600; // 1 hour
+  if (!row || row.status !== "finished" || !row.video_url) {
+    // Returns 404 if video ID is valid but record is not found, not finished, or has no URL
+    return NextResponse.json({ error: "Video file not found or still processing" }, { status: 404 });
+  }
+
+  // 2. Generate a fresh signed URL
+  const signedUrlTTL = 3600; 
 
   const { data: signedData, error: signedError } = await supabase.storage
     .from("videos")
@@ -37,29 +43,26 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Could not generate signed URL" }, { status: 500 });
   }
 
-  // 3. Proxy the request
-  
-  // Forward Range header for video seeking/streaming
+  // 3. Proxy the request, forwarding the crucial Range header
   const proxyHeaders = new Headers();
   const clientHeaders = req.headers;
 
   if (clientHeaders.has('range')) {
     proxyHeaders.set('Range', clientHeaders.get('range') as string);
   }
-  // Forward other relevant headers (Accept, Accept-Encoding, etc.)
   if (clientHeaders.has('accept')) {
       proxyHeaders.set('Accept', clientHeaders.get('accept') as string);
   }
   
   const proxyRes = await fetch(signedData.signedUrl, {
-    headers: proxyHeaders, // Use the forwarded headers
+    headers: proxyHeaders, 
   });
 
   if (!proxyRes.ok || !proxyRes.body) {
-    return NextResponse.json({ error: "Failed to fetch video" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to stream video from storage" }, { status: 500 });
   }
 
-  // Ensure correct headers are returned to the client for streaming
+  // 4. Return necessary streaming headers
   const responseHeaders = new Headers(proxyRes.headers);
 
   const headersToKeep = [
@@ -78,10 +81,9 @@ export async function GET(req: Request) {
     }
   }
 
-  // Set Content-Disposition to inline for streaming, unless a filename is explicitly provided for download
+  // Set Content-Disposition (inline for streaming, attachment for download)
   if (filename) {
-    // This block handles if this route is used for download as well (via filename query param)
-    const isDownload = url.pathname.includes('/api/video/stream') && url.searchParams.has('filename');
+    const isDownload = url.searchParams.has('filename');
     
     const contentDisposition = isDownload 
         ? `attachment; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`
@@ -89,11 +91,9 @@ export async function GET(req: Request) {
         
     finalHeaders.set('Content-Disposition', contentDisposition);
   } else {
-    // Default to inline for standard streaming
     finalHeaders.set('Content-Disposition', 'inline');
   }
   
-  // Use the original status (206 Partial Content or 200 OK)
   return new NextResponse(proxyRes.body, {
     status: proxyRes.status,
     headers: finalHeaders,

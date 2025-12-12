@@ -8,11 +8,9 @@ import { useSearchParams } from "next/navigation";
 
 // Placeholder for the necessary UI components you mentioned
 const DownloadButton = ({ videoId, filename }: { videoId: string, filename: string }) => {
-  // Use the API route /api/video/stream for download, which will enforce Content-Disposition
   return (
     <a 
       href={`/api/video/stream?id=${videoId}&filename=${encodeURIComponent(filename)}`} 
-      download // Note: download is ignored by the server but kept for structural completeness
       target="_blank" 
       rel="noopener noreferrer"
     >
@@ -74,7 +72,8 @@ function SuccessContent() {
 
   const publicStreamUrl = useMemo(() => {
     if (videoId) {
-      // Use the public, user-facing URL /stream?id=<VIDEO_ID>
+      // This is the URL that the video player uses. It should be a public route 
+      // that your Next.js configuration rewrites to your API proxy.
       return `${window.location.origin}/stream?id=${videoId}`;
     }
     return "";
@@ -82,11 +81,9 @@ function SuccessContent() {
 
   const downloadFilename = useMemo(() => {
     if (characterName) {
-      // Create a human-readable filename, e.g., "santa-claus.mp4"
       const slug = characterName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-*|-*$/g, '');
       return `${slug}.mp4`;
     }
-    // Fallback if character name is somehow missing
     return `video-${videoId}.mp4`;
   }, [characterName, videoId]);
 
@@ -131,7 +128,6 @@ function SuccessContent() {
           return;
         }
 
-        // Set the ID and character name. We no longer fetch the signed URL here.
         setVideoId(id);
         setCharacterName(character);
         
@@ -183,7 +179,6 @@ function SuccessContent() {
   if (status === "ready")
     return (
       <main>
-        {/* Use the public /stream URL which internally rewrites to the /api/video/stream proxy */}
         <video data-testid="video" src={publicStreamUrl} controls></video>
         
         <DownloadButton videoId={videoId} filename={downloadFilename} />

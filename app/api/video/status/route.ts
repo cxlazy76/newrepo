@@ -21,7 +21,6 @@ export async function GET(req: Request) {
 
   const supabase = supabaseServer();
 
-  // Select the character name (e.g., 'Santa Claus') in addition to id and status
   const { data: row } = await supabase
     .from("videos")
     .select("id, status, character")
@@ -35,7 +34,6 @@ export async function GET(req: Request) {
   return NextResponse.json({
     id: row.id,
     status: row.status,
-    // Return the character name so the client can generate the human-readable filename
     character: row.character, 
   });
 }
