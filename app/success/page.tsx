@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Copy, Download, Facebook, Mail, Share2, Twitter, Whatsapp } from "lucide-react";
+import { Copy, Download, Facebook, Mail, Share2, Twitter,  } from "lucide-react";
 
 // --- START: Component Imports (Assumed to exist based on inspiration) ---
 // NOTE: I am providing the core logic in this file and using standard HTML/Tailwind for styling
@@ -221,11 +221,6 @@ function SuccessContent() {
                                     </button>
 
                                     {/* Social Share Icons */}
-                                    <a href={`https://wa.me/?text=${encodeURIComponent(shareText + ' ' + fullShareUrl)}`}
-                                        target="_blank" rel="noopener noreferrer" aria-label="Share on WhatsApp"
-                                        className="p-3 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors shadow-md">
-                                        <Whatsapp size={20} />
-                                    </a>
                                     <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(fullShareUrl)}`}
                                         target="_blank" rel="noopener noreferrer" aria-label="Share on Facebook"
                                         className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors shadow-md">
