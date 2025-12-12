@@ -15,10 +15,12 @@ const getDomain = () => {
 };
 
 const getCharacterName = (videoId: string) => {
-    // Placeholder function: Replace with actual logic to fetch character name
-    if (videoId.length > 5) return "Santa Claus"; 
+    // Placeholder function: Use your actual mapping logic here if needed
+    if (videoId === "example-video-id") return "The AI News Anchor"; 
+    // Default fallback if real name cannot be fetched
     return "AI Greeting Video";
 };
+
 const VIDEO_FILENAME = (name: string) => `${name.toLowerCase().replace(/\s/g, '-')}.mp4`;
 
 const customStyles = `
@@ -40,7 +42,7 @@ const customStyles = `
 // --- END: Utility Functions and Styles ---
 
 
-// --- START: Component Placeholders (Matching Design Aesthetic) ---
+// --- START: Component Placeholders ---
 
 const CustomNavbar = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -69,7 +71,6 @@ const CustomNavbar = () => {
                     {isOpen ? <X size={28} /> : <Menu size={28} />}
                 </button>
             </div>
-            {/* Mobile menu implementation omitted for brevity */}
         </nav>
     );
 };
@@ -86,7 +87,8 @@ const CustomFooter = () => (
 
 
 function SuccessContent() {
-    // --- State and Polling Logic (from previous versions) ---
+    
+    // Ensure scroll is reset on page load (important for mobile UX)
     useEffect(() => {
         window.history.scrollRestoration = "manual";
         window.onpageshow = function (event) {
@@ -104,20 +106,62 @@ function SuccessContent() {
     const [characterName, setCharacterName] = useState("AI Character");
     const [linkCopied, setLinkCopied] = useState(false); 
 
-    // Polling logic omitted for brevity (keep your full implementation here)
+
+    // --- RESTORED API POLLING LOGIC ---
     useEffect(() => {
-        // Placeholder for polling logic
-        if (session_id) {
-            // Simulate success after a short delay
-            setTimeout(() => {
-                setVideoId("example-video-id");
-                setCharacterName(getCharacterName("example-video-id"));
-                setStatus("ready");
-            }, 3000);
-        } else {
+        if (!session_id) {
             setStatus("error");
+            return;
         }
+
+        let active = true;
+        let attempts = 0;
+        // Exponential backoff delays
+        const delays = [1000, 1500, 2000, 3000, 5000, 8000, 13000, 20000];
+        
+        const poll = async () => {
+            attempts++;
+            if (attempts > 30) { // Safety limit for maximum attempts
+                setStatus("error");
+                console.error("Polling stopped: Maximum attempts reached.");
+                return;
+            }
+
+            const res = await fetch(`/api/video/status?session_id=${session_id}`);
+            
+            if (!res.ok) {
+                setStatus("error");
+                console.error("Polling failed: Network error or bad response.");
+                return;
+            }
+
+            const data = await res.json();
+            if (!active) return;
+
+            if (data.status === "error") {
+                setStatus("error");
+                return;
+            }
+
+            if (data.status === "finished") {
+                setVideoId(data.id);
+                setCharacterName(getCharacterName(data.id));
+                setStatus("ready");
+                return;
+            }
+
+            // Continue polling
+            const delay = delays[Math.min(attempts - 1, delays.length - 1)];
+            setTimeout(poll, delay);
+        };
+
+        poll();
+
+        return () => {
+            active = false;
+        };
     }, [session_id]);
+    // --- END RESTORED LOGIC ---
 
 
     // Function to handle link copy and confirmation
@@ -142,7 +186,6 @@ function SuccessContent() {
                 console.error('Error or cancellation during native share:', error);
             });
         } else {
-            // Fallback: Copy link if native share is not available
             handleCopy(url);
         }
     };
@@ -153,6 +196,7 @@ function SuccessContent() {
     if (status === "error") return (
         <main className="min-h-screen pt-20 flex justify-center items-center">
             <h1 className="text-2xl font-bold text-red-600">Video Generation Error</h1>
+            <p className="mt-4 text-gray-600">Please contact support with your session ID: {session_id}</p>
         </main>
     );
 
@@ -160,7 +204,7 @@ function SuccessContent() {
         <main className="min-h-screen pt-20 flex flex-col items-center justify-center text-gray-700">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-900 border-t-transparent mb-4"></div>
             <h1 className="text-2xl font-bold text-gray-900">Your Roast is Cooking...</h1>
-            <p className="mt-2 text-gray-600">This usually takes under 60 seconds.</p>
+            <p className="mt-2 text-gray-600">This usually takes under 60 seconds. Hang tight!</p>
         </main>
     );
 
@@ -237,7 +281,7 @@ function SuccessContent() {
                         </button>
                     </div>
                     
-                    {/* Notice Section (No social icons) */}
+                    {/* Notice Section */}
                     <div className="mt-12 pt-8 border-t border-gray-100 w-full max-w-md text-sm text-gray-500 leading-relaxed">
                         <p className="font-bold text-gray-600 mb-2">Notice:</p>
                         <p>
