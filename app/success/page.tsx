@@ -4,16 +4,15 @@ export const dynamic = "force-dynamic";
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Copy, Download, Facebook, Mail, X, Menu } from "lucide-react";
+import { Copy, Download, Facebook, Mail, X, Menu, Share2 } from "lucide-react"; // Added Share2 for the new button
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 // --- START: Utility Functions ---
 const getDomain = () => {
-  return typeof window !== 'undefined' ? window.location.origin : 'https://example.com';
+    return typeof window !== 'undefined' ? window.location.origin : 'https://example.com';
 };
 
-// Placeholder for human-readable filename logic.
 const getCharacterName = (videoId: string) => {
     // In a real app, this would be fetched or derived from the video ID
     if (videoId.length > 5) return "Santa Claus"; 
@@ -21,31 +20,50 @@ const getCharacterName = (videoId: string) => {
 };
 const VIDEO_FILENAME = (name: string) => `${name.toLowerCase().replace(/\s/g, '-')}.mp4`;
 
+// PRESERVED: The original copy function using alert()
 const copyToClipboard = async (text: string) => {
-  try {
-    await navigator.clipboard.writeText(text);
-    alert("Share link copied to clipboard!");
-  } catch (err) {
-    console.error('Failed to copy text: ', err);
-  }
+    try {
+        await navigator.clipboard.writeText(text);
+        alert("Share link copied to clipboard!");
+    } catch (err) {
+        console.error('Failed to copy text: ', err);
+    }
+};
+
+// Function to handle native sharing (Added for the new "Share Video" button)
+const handleNativeShare = (url: string, characterName: string) => {
+    if (navigator.share) {
+        navigator.share({
+            title: 'Your AI Greeting Video',
+            text: `Check out this hilarious AI video I made with ${characterName}!`,
+            url: url,
+        }).catch((error) => {
+            console.error('Error or cancellation during native share:', error);
+            // Fallback to copy link if native share is not available
+            copyToClipboard(url);
+        });
+    } else {
+        // Fallback to copy link if native share is not available
+        copyToClipboard(url);
+    }
 };
 // --- END: Utility Functions ---
 
 
-// --- START: Custom Components (Adopted from Inspiration Code) ---
+// --- START: Custom Components (Navbar and Footer) ---
 
-// Replicating Navbar from inspiration
 const CustomNavbar = () => {
     const [isOpen, setIsOpen] = useState(false);
     return (
         <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100 h-16 sm:h-20">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 h-full flex items-center justify-between">
+                
                 <Link href="/" className="flex items-center gap-2 cursor-pointer no-underline group z-50 relative">
                     <span className="font-[900] tracking-tight text-xl sm:text-2xl text-gray-900 leading-none">
                         RoastYourFriend.com
                     </span>
                 </Link>
-                {/* Simplified desktop links for success page context */}
+
                 <div className="hidden md:flex items-center gap-8">
                     <Link href="/characters">
                         <button className="flex items-center gap-2 px-6 py-3 rounded-xl bg-[#E5FF00] text-black font-bold text-sm hover:bg-[#D4EE00] hover:shadow-md hover:scale-105 transition-all cursor-pointer">
@@ -53,23 +71,21 @@ const CustomNavbar = () => {
                         </button>
                     </Link>
                 </div>
+
                 <button className="md:hidden z-50 relative p-2" onClick={() => setIsOpen(!isOpen)}>
                     {isOpen ? <X size={28} /> : <Menu size={28} />}
                 </button>
             </div>
-            {/* Mobile Menu omitted for brevity, assume it links back to home/characters */}
         </nav>
     );
 };
 
-// Replicating Footer from inspiration
 const Footer = () => (
     <footer className="w-full bg-white border-t border-gray-100 py-6 text-center text-sm text-gray-500 font-medium">
         © {new Date().getFullYear()} RoastYourFriend.com. All rights reserved.
     </footer>
 );
 
-// Styles from inspiration for button and scrollbar
 const customStyles = `
     .btn-primary {
         background-color: #E5FF00;
@@ -91,7 +107,8 @@ const customStyles = `
 
 
 function SuccessContent() {
-    // --- State and Polling Logic (Unchanged from previous successful implementation) ---
+    
+    // --- State and Polling Logic (PRESERVED) ---
     useEffect(() => {
         window.history.scrollRestoration = "manual";
         window.onpageshow = function (event) {
@@ -158,7 +175,6 @@ function SuccessContent() {
         };
     }, [session_id]);
 
-    // --- Analytics/Cleanup Logic (kept as a note, implement your originals here) ---
     useEffect(() => {
         if (status === "ready") {
             // Your original analytics, log, and localStorage cleanup here...
@@ -200,7 +216,7 @@ function SuccessContent() {
                     className="w-full max-w-lg mx-auto px-4 sm:px-6 flex flex-col items-center text-center"
                 >
                     
-                    {/* Character Name Header */}
+                    {/* Character Name Header (Kept from your provided code) */}
                     <h1 className="text-3xl sm:text-4xl font-[900] tracking-tight text-gray-900 mb-2">
                         {characterName} :
                     </h1>
@@ -210,34 +226,47 @@ function SuccessContent() {
                         Your video is ready to share!
                     </p>
 
-                    {/* Video Player Card */}
+                    {/* Video Player Card (Vertical 9:16 aspect ratio) */}
                     <div className="aspect-[9/16] w-full max-w-xs shadow-2xl rounded-[1.5rem] overflow-hidden bg-black border-[6px] border-gray-100 mb-8">
                         <video 
                             data-testid="video" 
                             src={publicStreamUrl} 
                             controls 
                             className="w-full h-full object-cover"
-                            // Adding the play icon centered like in the image
-                            poster="/placeholder-play-icon.png" // Use a placeholder image with a play icon if needed
+                            poster="/placeholder-play-icon.png"
                         ></video>
                     </div>
 
-                    {/* Download Button (Styled as btn-primary) */}
-                    <a
-                        href={downloadUrl}
-                        className="w-full max-w-xs flex items-center justify-center gap-3 px-6 py-4 mb-8 text-black text-lg font-extrabold rounded-xl shadow-lg btn-primary hover:scale-[1.02] transition-all"
-                        aria-label={`Download ${characterName} Video`}
-                    >
-                        <Download size={20} />
-                        Download Video
-                    </a>
+                    {/* --- ACTION BUTTONS --- */}
+                    <div className="w-full max-w-xs space-y-4 mb-8">
+                        
+                        {/* 1. Download Button (Styled as btn-primary) */}
+                        <a
+                            href={downloadUrl}
+                            className="w-full flex items-center justify-center gap-3 px-6 py-4 text-black text-lg font-extrabold rounded-xl shadow-lg btn-primary hover:scale-[1.02] transition-all"
+                            aria-label={`Download ${characterName} Video`}
+                        >
+                            <Download size={20} />
+                            Download Video
+                        </a>
+
+                        {/* 2. Share Video Button (Native Share / Copy Link fallback) */}
+                        <button
+                            onClick={() => handleNativeShare(fullShareUrl, characterName)}
+                            className="w-full flex items-center justify-center gap-3 px-6 py-4 text-black text-lg font-extrabold rounded-xl shadow-md bg-gray-100 hover:bg-gray-200 hover:scale-[1.02] transition-all"
+                            aria-label="Share Video"
+                        >
+                            <Share2 size={20} />
+                            Share Video
+                        </button>
+                    </div>
 
                     {/* Share Section Header */}
                     <p className="text-base font-semibold text-gray-600 mb-4">
                         Forward directly to your friend on :
                     </p>
                     
-                    {/* Social Share Icons */}
+                    {/* Social Share Icons (Facebook, Email, Copy) */}
                     <div className="flex items-center space-x-4 mb-12">
                         
                         {/* Facebook */}
@@ -254,8 +283,8 @@ function SuccessContent() {
                             <Mail size={24} />
                         </a>
 
-                        {/* Copy Link (Optional, for completeness) */}
-                         <button
+                        {/* Copy Link (Preserving original logic: uses alert) */}
+                        <button
                             onClick={() => copyToClipboard(fullShareUrl)}
                             className="p-3 bg-gray-100 text-gray-700 rounded-full border border-gray-200 hover:bg-gray-200 transition-colors shadow-md"
                             aria-label="Copy Share Link"
