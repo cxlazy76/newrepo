@@ -1,0 +1,11 @@
+@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Add this to your body tag */
+body {
+  @apply bg-gray-50; 
+  /* Alternatively, use a specific hex code: background-color: #f9fafb; */
+  color: rgb(var(--foreground-rgb));
+}
