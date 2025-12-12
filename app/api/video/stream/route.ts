@@ -1,3 +1,4 @@
+// stream route ts (with added logging for debugging)
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 
@@ -10,7 +11,7 @@ export async function GET(req: Request) {
   const filename = url.searchParams.get("filename"); 
   
   if (!videoId || !UUID_REGEX.test(videoId)) {
-    // Returns 404 if ID is missing or invalid UUID format
+    console.error("Invalid video ID format or missing.");
     return NextResponse.json({ error: "Invalid video ID" }, { status: 404 });
   }
 
@@ -23,27 +24,33 @@ export async function GET(req: Request) {
     .eq("id", videoId)
     .single();
   
-  if (dbError) {
-    console.error("Database error fetching video:", dbError);
-  }
-
-  if (!row || row.status !== "finished" || !row.video_url) {
-    // Returns 404 if video ID is valid but record is not found, not finished, or has no URL
+  if (dbError || !row || row.status !== "finished" || !row.video_url) {
+    console.error("DB Lookup Failed or Video not ready. ID:", videoId, "Error:", dbError, "Row:", row);
     return NextResponse.json({ error: "Video file not found or still processing" }, { status: 404 });
   }
+  
+  // **DEBUG LOGGING ADDED HERE**
+  console.log("Video ID found. Storage Path in DB:", row.video_url);
 
   // 2. Generate a fresh signed URL
   const signedUrlTTL = 3600; 
 
   const { data: signedData, error: signedError } = await supabase.storage
-    .from("videos")
+    .from("videos") // **CRUCIAL: Ensure this is the correct bucket name, e.g., 'videos'**
     .createSignedUrl(row.video_url, signedUrlTTL);
 
   if (signedError || !signedData?.signedUrl) {
+    // **DEBUG LOGGING ADDED HERE**
+    console.error("Signed URL generation failed. Path used:", row.video_url, "Error:", signedError);
     return NextResponse.json({ error: "Could not generate signed URL" }, { status: 500 });
   }
 
+  // **DEBUG LOGGING ADDED HERE**
+  console.log("Signed URL generated successfully. Attempting to fetch...");
+  
   // 3. Proxy the request, forwarding the crucial Range header
+  // ... (rest of the proxy logic remains the same)
+  
   const proxyHeaders = new Headers();
   const clientHeaders = req.headers;
 
@@ -59,10 +66,14 @@ export async function GET(req: Request) {
   });
 
   if (!proxyRes.ok || !proxyRes.body) {
+    // **DEBUG LOGGING ADDED HERE**
+    console.error(`Failed to stream video from storage. Status: ${proxyRes.status} URL: ${signedData.signedUrl}`);
     return NextResponse.json({ error: "Failed to stream video from storage" }, { status: 500 });
   }
 
   // 4. Return necessary streaming headers
+  // ... (rest of the successful response logic remains the same)
+
   const responseHeaders = new Headers(proxyRes.headers);
 
   const headersToKeep = [
@@ -81,7 +92,6 @@ export async function GET(req: Request) {
     }
   }
 
-  // Set Content-Disposition (inline for streaming, attachment for download)
   if (filename) {
     const isDownload = url.searchParams.has('filename');
     
