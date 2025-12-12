@@ -102,7 +102,7 @@ function SuccessContent() {
     const [videoId, setVideoId] = useState("");
     const [status, setStatus] = useState<"error" | "processing" | "ready">("processing");
     const [characterName, setCharacterName] = useState("AI Character");
-    const [linkCopied, setLinkCopied] = useState(false); // New state for copy confirmation
+    const [linkCopied, setLinkCopied] = useState(false); 
 
     // Polling logic omitted for brevity (keep your full implementation here)
     useEffect(() => {
@@ -127,7 +127,6 @@ function SuccessContent() {
             setLinkCopied(true);
             setTimeout(() => setLinkCopied(false), 3000); 
         } else {
-             // Fallback for older browsers
              console.error("Clipboard API not available. Please copy manually.");
         }
     };
@@ -140,9 +139,7 @@ function SuccessContent() {
                 text: `Check out this hilarious AI video I made with ${characterName}!`,
                 url: url,
             }).catch((error) => {
-                // If user cancels or share fails, log or provide feedback
                 console.error('Error or cancellation during native share:', error);
-                // Optionally provide a fallback UI
             });
         } else {
             // Fallback: Copy link if native share is not available
@@ -172,7 +169,6 @@ function SuccessContent() {
         const publicStreamUrl = `/stream?id=${videoId}`;
         const downloadUrl = `/stream?id=${videoId}&filename=${encodeURIComponent(filename)}`;
         const fullShareUrl = `${getDomain()}/stream?id=${videoId}`;
-        const shareText = `Check out this hilarious AI video I made!`;
 
         return (
             <main className="flex flex-col items-center bg-white text-gray-900 font-sans min-h-screen pt-28 md:pt-32 pb-16">
@@ -194,8 +190,8 @@ function SuccessContent() {
                         ({characterName} Greeting)
                     </p>
 
-                    {/* Video Player Card */}
-                    <div className="aspect-[16/9] w-full max-w-md shadow-2xl rounded-2xl overflow-hidden bg-black border-4 border-gray-200 mb-8">
+                    {/* VIDEO PLAYER CARD (9:16 Aspect Ratio) */}
+                    <div className="aspect-[9/16] w-full max-w-[280px] shadow-2xl rounded-2xl overflow-hidden bg-black border-4 border-gray-200 mb-8 sm:max-w-xs">
                         <video 
                             data-testid="video" 
                             src={publicStreamUrl} 
@@ -241,32 +237,7 @@ function SuccessContent() {
                         </button>
                     </div>
                     
-                    {/* Direct Social Links (WhatsApp and Telegram) */}
-                    <div className="flex items-center space-x-6 mt-8">
-                        <span className="text-gray-600 font-medium">Or send directly via:</span>
-                        
-                        {/* WhatsApp */}
-                        <a href={`https://wa.me/?text=${encodeURIComponent(shareText + ' ' + fullShareUrl)}`}
-                            target="_blank" rel="noopener noreferrer" aria-label="Share on WhatsApp"
-                            className="p-3 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors shadow-md">
-                            {/* WhatsApp SVG Icon */}
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M12.0003 2C6.48679 2 2.01258 6.47169 2.00032 11.9793C2.00032 13.7915 2.50284 15.4984 3.39867 16.9429L2.00032 21.9997L7.14959 20.627C8.55835 21.464 10.2185 21.9056 12.0003 21.9066H12.0143C17.5143 21.8988 22.0003 17.4258 22.0003 11.9793C22.0003 6.47169 17.5143 2 12.0003 2Z"/>
-                            </svg>
-                        </a>
-                        
-                        {/* Telegram */}
-                        <a href={`https://t.me/share/url?url=${encodeURIComponent(fullShareUrl)}&text=${encodeURIComponent(shareText)}`}
-                            target="_blank" rel="noopener noreferrer" aria-label="Share on Telegram"
-                            className="p-3 bg-blue-500 text-white rounded-full hover:bg-blue-600 transition-colors shadow-md">
-                            {/* Telegram SVG Icon */}
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M18.397 5.513c-.452-.27-.99-.34-1.554-.207L3.435 11.192c-.856.417-.866 1.442-.016 1.868l3.435 1.708 7.323-4.595c.34-.216.63.02.34.34L7.56 16.602l-.578 3.553c.49.19.98.28 1.47.28l.84-2.67 4.1-2.073 3.65 2.308c.67.425 1.55-.07 1.47-.82l.67-6.023c.09-.64-.26-1.29-.86-1.58z"/>
-                            </svg>
-                        </a>
-                    </div>
-
-                    {/* Notice Section */}
+                    {/* Notice Section (No social icons) */}
                     <div className="mt-12 pt-8 border-t border-gray-100 w-full max-w-md text-sm text-gray-500 leading-relaxed">
                         <p className="font-bold text-gray-600 mb-2">Notice:</p>
                         <p>
