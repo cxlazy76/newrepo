@@ -4,7 +4,7 @@ export const dynamic = "force-dynamic";
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Copy, Download, Facebook, Mail, X, Menu, Share2 } from "lucide-react"; // Added Share2 for the new button
+import { Copy, Download, Share2, Menu, X } from "lucide-react"; // Only necessary icons
 import Link from "next/link";
 import { motion } from "framer-motion";
 
@@ -14,7 +14,7 @@ const getDomain = () => {
 };
 
 const getCharacterName = (videoId: string) => {
-    // In a real app, this would be fetched or derived from the video ID
+    // Placeholder for human-readable filename logic.
     if (videoId.length > 5) return "Santa Claus"; 
     return "AI Greeting Video";
 };
@@ -24,22 +24,22 @@ const VIDEO_FILENAME = (name: string) => `${name.toLowerCase().replace(/\s/g, '-
 const copyToClipboard = async (text: string) => {
     try {
         await navigator.clipboard.writeText(text);
-        alert("Share link copied to clipboard!");
+        alert("Share link copied to clipboard!"); // Keeping alert as requested by preserving original logic
     } catch (err) {
         console.error('Failed to copy text: ', err);
     }
 };
 
-// Function to handle native sharing (Added for the new "Share Video" button)
+// Function for the new "Share Video" button (Native Share / Copy Link fallback)
 const handleNativeShare = (url: string, characterName: string) => {
     if (navigator.share) {
         navigator.share({
-            title: 'Your AI Greeting Video',
+            title: 'Your AI Video Greeting',
             text: `Check out this hilarious AI video I made with ${characterName}!`,
             url: url,
         }).catch((error) => {
             console.error('Error or cancellation during native share:', error);
-            // Fallback to copy link if native share is not available
+            // Fallback to copy link if native share fails
             copyToClipboard(url);
         });
     } else {
@@ -50,20 +50,18 @@ const handleNativeShare = (url: string, characterName: string) => {
 // --- END: Utility Functions ---
 
 
-// --- START: Custom Components (Navbar and Footer) ---
+// --- START: Component Placeholders (Navbar, Footer, and Styles) ---
 
 const CustomNavbar = () => {
     const [isOpen, setIsOpen] = useState(false);
     return (
         <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100 h-16 sm:h-20">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 h-full flex items-center justify-between">
-                
                 <Link href="/" className="flex items-center gap-2 cursor-pointer no-underline group z-50 relative">
                     <span className="font-[900] tracking-tight text-xl sm:text-2xl text-gray-900 leading-none">
                         RoastYourFriend.com
                     </span>
                 </Link>
-
                 <div className="hidden md:flex items-center gap-8">
                     <Link href="/characters">
                         <button className="flex items-center gap-2 px-6 py-3 rounded-xl bg-[#E5FF00] text-black font-bold text-sm hover:bg-[#D4EE00] hover:shadow-md hover:scale-105 transition-all cursor-pointer">
@@ -71,7 +69,6 @@ const CustomNavbar = () => {
                         </button>
                     </Link>
                 </div>
-
                 <button className="md:hidden z-50 relative p-2" onClick={() => setIsOpen(!isOpen)}>
                     {isOpen ? <X size={28} /> : <Menu size={28} />}
                 </button>
@@ -108,7 +105,7 @@ const customStyles = `
 
 function SuccessContent() {
     
-    // --- State and Polling Logic (PRESERVED) ---
+    // --- Lifecycle and URL Params ---
     useEffect(() => {
         window.history.scrollRestoration = "manual";
         window.onpageshow = function (event) {
@@ -126,6 +123,7 @@ function SuccessContent() {
     const [characterName, setCharacterName] = useState("AI Character");
 
 
+    // --- RESTORED POLLING LOGIC ---
     useEffect(() => {
         if (!session_id) {
             setStatus("error");
@@ -174,6 +172,8 @@ function SuccessContent() {
             active = false;
         };
     }, [session_id]);
+    // --- END RESTORED POLLING LOGIC ---
+
 
     useEffect(() => {
         if (status === "ready") {
@@ -203,12 +203,10 @@ function SuccessContent() {
         const publicStreamUrl = `/stream?id=${videoId}`;
         const downloadUrl = `/stream?id=${videoId}&filename=${encodeURIComponent(filename)}`;
         const fullShareUrl = `${getDomain()}/stream?id=${videoId}`;
-        const shareText = `Check out this hilarious AI video I made with ${characterName}!`;
 
         return (
             <main className="flex flex-col items-center bg-white text-gray-900 font-sans min-h-screen pt-28 md:pt-32 pb-16">
                 
-                {/* Main Content Area: Centered and constrained */}
                 <motion.div 
                     initial={{ opacity: 0, y: 50 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -216,7 +214,7 @@ function SuccessContent() {
                     className="w-full max-w-lg mx-auto px-4 sm:px-6 flex flex-col items-center text-center"
                 >
                     
-                    {/* Character Name Header (Kept from your provided code) */}
+                    {/* Character Name Header (Kept) */}
                     <h1 className="text-3xl sm:text-4xl font-[900] tracking-tight text-gray-900 mb-2">
                         {characterName} :
                     </h1>
@@ -237,20 +235,20 @@ function SuccessContent() {
                         ></video>
                     </div>
 
-                    {/* --- ACTION BUTTONS --- */}
-                    <div className="w-full max-w-xs space-y-4 mb-8">
+                    {/* --- ACTION BUTTONS (Download, Share, Copy) --- */}
+                    <div className="w-full max-w-xs space-y-4">
                         
-                        {/* 1. Download Button (Styled as btn-primary) */}
+                        {/* 1. Download Button (btn-primary) */}
                         <a
                             href={downloadUrl}
                             className="w-full flex items-center justify-center gap-3 px-6 py-4 text-black text-lg font-extrabold rounded-xl shadow-lg btn-primary hover:scale-[1.02] transition-all"
-                            aria-label={`Download ${characterName} Video`}
+                            aria-label="Download Video"
                         >
                             <Download size={20} />
                             Download Video
                         </a>
 
-                        {/* 2. Share Video Button (Native Share / Copy Link fallback) */}
+                        {/* 2. Share Video Button (Native Share) */}
                         <button
                             onClick={() => handleNativeShare(fullShareUrl, characterName)}
                             className="w-full flex items-center justify-center gap-3 px-6 py-4 text-black text-lg font-extrabold rounded-xl shadow-md bg-gray-100 hover:bg-gray-200 hover:scale-[1.02] transition-all"
@@ -259,42 +257,20 @@ function SuccessContent() {
                             <Share2 size={20} />
                             Share Video
                         </button>
-                    </div>
 
-                    {/* Share Section Header */}
-                    <p className="text-base font-semibold text-gray-600 mb-4">
-                        Forward directly to your friend on :
-                    </p>
-                    
-                    {/* Social Share Icons (Facebook, Email, Copy) */}
-                    <div className="flex items-center space-x-4 mb-12">
-                        
-                        {/* Facebook */}
-                        <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(fullShareUrl)}`}
-                            target="_blank" rel="noopener noreferrer" aria-label="Share on Facebook"
-                            className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors shadow-md">
-                            <Facebook size={24} />
-                        </a>
-                        
-                        {/* Email */}
-                        <a href={`mailto:?subject=${encodeURIComponent('Your AI Video Greeting')}&body=${encodeURIComponent(shareText + '\n\nLink: ' + fullShareUrl)}`}
-                            aria-label="Share via Email"
-                            className="p-3 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-md">
-                            <Mail size={24} />
-                        </a>
-
-                        {/* Copy Link (Preserving original logic: uses alert) */}
+                        {/* 3. Copy Link Button (Uses original logic with alert) */}
                         <button
                             onClick={() => copyToClipboard(fullShareUrl)}
-                            className="p-3 bg-gray-100 text-gray-700 rounded-full border border-gray-200 hover:bg-gray-200 transition-colors shadow-md"
+                            className="w-full flex items-center justify-center gap-3 px-6 py-4 text-lg font-extrabold rounded-xl shadow-md bg-gray-100 text-gray-800 hover:bg-gray-200 hover:scale-[1.02] transition-all"
                             aria-label="Copy Share Link"
                         >
-                            <Copy size={24} />
+                            <Copy size={20} />
+                            Copy Share Link
                         </button>
                     </div>
-
-                    {/* Notice Section */}
-                    <div className="mt-8 pt-8 border-t border-gray-100 w-full max-w-md text-sm text-gray-500 leading-relaxed">
+                    
+                    {/* Notice Section (Cleaned up, no separate social icons needed) */}
+                    <div className="mt-12 pt-8 border-t border-gray-100 w-full max-w-md text-sm text-gray-500 leading-relaxed">
                         <p className="font-bold text-gray-600 mb-2">Notice:</p>
                         <p>
                             If you are not satisfied with the result, please contact us via 
