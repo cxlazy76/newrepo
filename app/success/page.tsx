@@ -4,43 +4,19 @@ export const dynamic = "force-dynamic";
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Copy, Download, Facebook, Mail, Share2, Twitter,  } from "lucide-react";
+import { Copy, Download, Facebook, Mail, X, Menu } from "lucide-react";
+import Link from "next/link";
+import { motion, AnimatePresence } from "framer-motion";
 
-// --- START: Component Imports (Assumed to exist based on inspiration) ---
-// NOTE: I am providing the core logic in this file and using standard HTML/Tailwind for styling
-// based on the visual inspiration and the provided code's aesthetic (e.g., bg-white, gray-900 text).
-// If you have actual Navbar, Footer, etc., import them here.
-const Navbar = ({ step }: { step: number }) => (
-    <div className="w-full py-4 px-6 bg-white shadow-sm flex justify-center text-center">
-        <h1 className="text-xl font-bold text-gray-800">Video Generator</h1>
-    </div>
-);
-const Footer = () => (
-    <footer className="w-full bg-gray-50 py-6 text-center text-sm text-gray-500">
-        © {new Date().getFullYear()} Your Company Name. All rights reserved.
-    </footer>
-);
-const StepIndicator = ({ step }: { step: number }) => (
-    <div className="flex justify-center space-x-2 my-6">
-        {[1, 2, 3].map(s => (
-            <span key={s} className={`h-2 w-10 rounded-full ${s <= step ? 'bg-blue-600' : 'bg-gray-200'}`}></span>
-        ))}
-    </div>
-);
-// --- END: Component Imports ---
-
-
-// --- START: Utility Functions (from previous answer, slightly refined) ---
+// --- START: Utility Functions ---
 const getDomain = () => {
-  return typeof window !== 'undefined' ? window.location.origin : 'https://example.com'; 
+  return typeof window !== 'undefined' ? window.location.origin : 'https://example.com';
 };
 
-// Placeholder for human-readable filename logic. In a real app, you'd fetch this.
-// I'm using a placeholder function to simulate getting the character name from the video ID/session.
+// Placeholder for human-readable filename logic.
 const getCharacterName = (videoId: string) => {
-    // This is a dummy implementation. In reality, you'd fetch the character name 
-    // from your database using videoId/session_id or pass it as a param.
-    if (videoId.length > 5) return "Santa Claus";
+    // In a real app, this would be fetched or derived from the video ID
+    if (videoId.length > 5) return "Santa Claus"; 
     return "AI Greeting Video";
 };
 const VIDEO_FILENAME = (name: string) => `${name.toLowerCase().replace(/\s/g, '-')}.mp4`;
@@ -56,8 +32,66 @@ const copyToClipboard = async (text: string) => {
 // --- END: Utility Functions ---
 
 
+// --- START: Custom Components (Adopted from Inspiration Code) ---
+
+// Replicating Navbar from inspiration
+const CustomNavbar = () => {
+    const [isOpen, setIsOpen] = useState(false);
+    return (
+        <nav className="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-sm border-b border-gray-100 h-16 sm:h-20">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 h-full flex items-center justify-between">
+                <Link href="/" className="flex items-center gap-2 cursor-pointer no-underline group z-50 relative">
+                    <span className="font-[900] tracking-tight text-xl sm:text-2xl text-gray-900 leading-none">
+                        RoastYourFriend.com
+                    </span>
+                </Link>
+                {/* Simplified desktop links for success page context */}
+                <div className="hidden md:flex items-center gap-8">
+                    <Link href="/characters">
+                        <button className="flex items-center gap-2 px-6 py-3 rounded-xl bg-[#E5FF00] text-black font-bold text-sm hover:bg-[#D4EE00] hover:shadow-md hover:scale-105 transition-all cursor-pointer">
+                            Make Another Video
+                        </button>
+                    </Link>
+                </div>
+                <button className="md:hidden z-50 relative p-2" onClick={() => setIsOpen(!isOpen)}>
+                    {isOpen ? <X size={28} /> : <Menu size={28} />}
+                </button>
+            </div>
+            {/* Mobile Menu omitted for brevity, assume it links back to home/characters */}
+        </nav>
+    );
+};
+
+// Replicating Footer from inspiration
+const Footer = () => (
+    <footer className="w-full bg-white border-t border-gray-100 py-6 text-center text-sm text-gray-500 font-medium">
+        © {new Date().getFullYear()} RoastYourFriend.com. All rights reserved.
+    </footer>
+);
+
+// Styles from inspiration for button and scrollbar
+const customStyles = `
+    .btn-primary {
+        background-color: #E5FF00;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+        background-color: #D4EE00;
+        box-shadow: 0 4px 15px rgba(229, 255, 0, 0.4);
+        transform: translateY(-1px);
+    }
+    
+    .btn-primary:active {
+        transform: translateY(0px);
+    }
+`;
+
+// --- END: Custom Components ---
+
+
 function SuccessContent() {
-    // --- State and Setup ---
+    // --- State and Polling Logic (Unchanged from previous successful implementation) ---
     useEffect(() => {
         window.history.scrollRestoration = "manual";
         window.onpageshow = function (event) {
@@ -75,10 +109,7 @@ function SuccessContent() {
     const [characterName, setCharacterName] = useState("AI Character");
 
 
-    // --- Polling Logic ---
     useEffect(() => {
-        // ... (Log view omitted for brevity, keep it if you need it)
-
         if (!session_id) {
             setStatus("error");
             return;
@@ -111,8 +142,7 @@ function SuccessContent() {
 
             if (data.status === "finished") {
                 setVideoId(data.id);
-                // FIX: Derive character name here using data.id or fetch from an endpoint
-                setCharacterName(getCharacterName(data.id)); 
+                setCharacterName(getCharacterName(data.id));
                 setStatus("ready");
                 return;
             }
@@ -128,131 +158,125 @@ function SuccessContent() {
         };
     }, [session_id]);
 
-    // --- Analytics/Cleanup Logic (omitted for brevity, keep your original) ---
+    // --- Analytics/Cleanup Logic (kept as a note, implement your originals here) ---
     useEffect(() => {
         if (status === "ready") {
-            // ... Your original analytics/log/localStorage cleanup code here ...
+            // Your original analytics, log, and localStorage cleanup here...
         }
     }, [status, session_id]);
 
 
     // --- Content Rendering ---
 
-    if (status === "error") return <main className="min-h-screen pt-20 flex justify-center items-center">
-        <h1 className="text-2xl font-bold text-red-600">Video Generation Error</h1>
-    </main>;
-    
-    // Processing UI based on inspiration style
-    if (status === "processing") return (
-        <main className="min-h-screen pt-20 flex flex-col items-center justify-center text-gray-700">
-            <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mb-4"></div>
-            <h1 className="text-2xl font-bold">Generating Your Video...</h1>
-            <p className="mt-2">This usually takes under 60 seconds. Please wait.</p>
+    if (status === "error") return (
+        <main className="min-h-screen pt-20 flex justify-center items-center">
+            <h1 className="text-2xl font-bold text-red-600">Video Generation Error</h1>
         </main>
     );
 
-    // Ready UI: Styled like the character detail page
+    if (status === "processing") return (
+        <main className="min-h-screen pt-20 flex flex-col items-center justify-center text-gray-700">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-900 border-t-transparent mb-4"></div>
+            <h1 className="text-2xl font-bold text-gray-900">Your Roast is Cooking...</h1>
+            <p className="mt-2 text-gray-600">This usually takes under 60 seconds.</p>
+        </main>
+    );
+
     if (status === "ready" && videoId) {
-        
         const filename = VIDEO_FILENAME(characterName);
         const publicStreamUrl = `/stream?id=${videoId}`;
         const downloadUrl = `/stream?id=${videoId}&filename=${encodeURIComponent(filename)}`;
         const fullShareUrl = `${getDomain()}/stream?id=${videoId}`;
-        const shareText = `Check out my new AI video from ${characterName}!`;
+        const shareText = `Check out this hilarious AI video I made with ${characterName}!`;
 
         return (
-            <main className="flex flex-col items-center bg-white text-gray-900 font-sans min-h-screen pt-20 md:pt-24">
+            <main className="flex flex-col items-center bg-white text-gray-900 font-sans min-h-screen pt-28 md:pt-32 pb-16">
                 
-                <div className="w-full flex justify-center">
-                    <StepIndicator step={3} />
-                </div>
+                {/* Main Content Area: Centered and constrained */}
+                <motion.div 
+                    initial={{ opacity: 0, y: 50 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.7 }}
+                    className="w-full max-w-lg mx-auto px-4 sm:px-6 flex flex-col items-center text-center"
+                >
+                    
+                    {/* Character Name Header */}
+                    <h1 className="text-3xl sm:text-4xl font-[900] tracking-tight text-gray-900 mb-2">
+                        {characterName} :
+                    </h1>
+                    
+                    {/* Status Message */}
+                    <p className="text-xl sm:text-2xl text-gray-600 font-medium mb-10">
+                        Your video is ready to share!
+                    </p>
 
-                <div className="w-full max-w-6xl mx-auto px-4 sm:px-6 pb-10 md:pb-24 lg:mt-8">
-
-                    <div className="flex flex-col lg:flex-row items-start justify-center gap-12 lg:gap-20">
-
-                        {/* --- LEFT COLUMN: Video Preview --- */}
-                        <div className="w-full lg:w-1/2 flex flex-col items-center lg:items-start">
-                            
-                            <h2 className="text-3xl font-extrabold mb-4 text-center lg:text-left">{characterName} :</h2>
-                            
-                            <div className="w-full max-w-sm sm:max-w-md md:max-w-lg lg:w-full flex justify-center lg:justify-start">
-                                {/* Video Player */}
-                                <div className="aspect-[9/16] w-full max-w-sm shadow-2xl rounded-xl overflow-hidden bg-black">
-                                    <video 
-                                        data-testid="video" 
-                                        src={publicStreamUrl} 
-                                        controls 
-                                        className="w-full h-full object-cover"
-                                        poster="/placeholder-poster.jpg" // Add your poster image
-                                        autoPlay 
-                                    ></video>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* --- RIGHT COLUMN: Actions & Notice --- */}
-                        <div className="w-full lg:w-1/2 mx-auto lg:mx-0 pt-10 lg:pt-0">
-                            
-                            <h3 className="text-2xl font-bold mb-6 text-gray-800">Your Video is Ready!</h3>
-
-                            {/* Download Button */}
-                            <a
-                                href={downloadUrl}
-                                className="w-full flex items-center justify-center gap-3 px-6 py-3 mb-6 bg-green-500 text-white text-lg font-semibold rounded-lg hover:bg-green-600 transition-colors shadow-lg"
-                                aria-label={`Download ${characterName} Video`}
-                            >
-                                <Download size={20} />
-                                Download Video ({filename})
-                            </a>
-
-                            {/* Share Actions */}
-                            <div className="mb-8 p-4 bg-gray-50 rounded-lg border border-gray-100">
-                                <p className="text-gray-600 font-medium mb-3">Forward directly to your friend on:</p>
-                                
-                                <div className="flex items-center space-x-4">
-                                    {/* Share Link Button */}
-                                    <button
-                                        onClick={() => copyToClipboard(fullShareUrl)}
-                                        className="flex-shrink-0 p-3 bg-white text-gray-700 rounded-full border border-gray-300 hover:bg-gray-100 transition-colors shadow-md"
-                                        aria-label="Copy Share Link"
-                                    >
-                                        <Copy size={20} />
-                                    </button>
-
-                                    {/* Social Share Icons */}
-                                    <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(fullShareUrl)}`}
-                                        target="_blank" rel="noopener noreferrer" aria-label="Share on Facebook"
-                                        className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors shadow-md">
-                                        <Facebook size={20} />
-                                    </a>
-                                    <a href={`mailto:?subject=${encodeURIComponent('Your AI Video Greeting')}&body=${encodeURIComponent(shareText + '\n\nLink: ' + fullShareUrl)}`}
-                                        aria-label="Share via Email"
-                                        className="p-3 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-md">
-                                        <Mail size={20} />
-                                    </a>
-                                </div>
-                            </div>
-                            
-                            {/* Notice/Refund Policy Section */}
-                            <div className="mt-12 pt-8 border-t border-gray-200">
-                                <h4 className="text-lg font-bold text-gray-800 mb-2">Notice:</h4>
-                                <p className="text-gray-600 text-sm">
-                                    If you are not satisfied with the result, please contact us via 
-                                    <a href="mailto:contact@roastyourfriend.com" className="text-blue-600 hover:underline ml-1">contact@roastyourfriend.com</a>
-                                    .
-                                </p>
-                                <p className="text-gray-600 text-sm mt-1">
-                                    You may be eligible for a refund or a new video based on your own choice.
-                                </p>
-                            </div>
-                        </div>
+                    {/* Video Player Card */}
+                    <div className="aspect-[9/16] w-full max-w-xs shadow-2xl rounded-[1.5rem] overflow-hidden bg-black border-[6px] border-gray-100 mb-8">
+                        <video 
+                            data-testid="video" 
+                            src={publicStreamUrl} 
+                            controls 
+                            className="w-full h-full object-cover"
+                            // Adding the play icon centered like in the image
+                            poster="/placeholder-play-icon.png" // Use a placeholder image with a play icon if needed
+                        ></video>
                     </div>
 
-                    {/* Placeholder for Related Characters or other content if needed */}
-                    {/* <RelatedCharacters ... /> */}
+                    {/* Download Button (Styled as btn-primary) */}
+                    <a
+                        href={downloadUrl}
+                        className="w-full max-w-xs flex items-center justify-center gap-3 px-6 py-4 mb-8 text-black text-lg font-extrabold rounded-xl shadow-lg btn-primary hover:scale-[1.02] transition-all"
+                        aria-label={`Download ${characterName} Video`}
+                    >
+                        <Download size={20} />
+                        Download Video
+                    </a>
 
-                </div>
+                    {/* Share Section Header */}
+                    <p className="text-base font-semibold text-gray-600 mb-4">
+                        Forward directly to your friend on :
+                    </p>
+                    
+                    {/* Social Share Icons */}
+                    <div className="flex items-center space-x-4 mb-12">
+                        
+                        {/* Facebook */}
+                        <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(fullShareUrl)}`}
+                            target="_blank" rel="noopener noreferrer" aria-label="Share on Facebook"
+                            className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors shadow-md">
+                            <Facebook size={24} />
+                        </a>
+                        
+                        {/* Email */}
+                        <a href={`mailto:?subject=${encodeURIComponent('Your AI Video Greeting')}&body=${encodeURIComponent(shareText + '\n\nLink: ' + fullShareUrl)}`}
+                            aria-label="Share via Email"
+                            className="p-3 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors shadow-md">
+                            <Mail size={24} />
+                        </a>
+
+                        {/* Copy Link (Optional, for completeness) */}
+                         <button
+                            onClick={() => copyToClipboard(fullShareUrl)}
+                            className="p-3 bg-gray-100 text-gray-700 rounded-full border border-gray-200 hover:bg-gray-200 transition-colors shadow-md"
+                            aria-label="Copy Share Link"
+                        >
+                            <Copy size={24} />
+                        </button>
+                    </div>
+
+                    {/* Notice Section */}
+                    <div className="mt-8 pt-8 border-t border-gray-100 w-full max-w-md text-sm text-gray-500 leading-relaxed">
+                        <p className="font-bold text-gray-600 mb-2">Notice:</p>
+                        <p>
+                            If you are not satisfied with the result, please contact us via 
+                            <a href="mailto:contact@roastyourfriend.com" className="text-blue-600 hover:underline ml-1">contact@roastyourfriend.com</a>.
+                        </p>
+                        <p className="mt-2">
+                            You may be eligible for a refund or a new video based on your own choice.
+                        </p>
+                    </div>
+
+                </motion.div>
             </main>
         );
     }
@@ -261,10 +285,11 @@ function SuccessContent() {
 export default function SuccessPage() {
     return (
         <>
-            <Navbar step={3} /> 
+            <style jsx global>{customStyles}</style>
+            <CustomNavbar />
             <Suspense fallback={
                 <main className="min-h-screen pt-20 flex flex-col items-center justify-center text-gray-700">
-                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-blue-500 border-t-transparent mb-4"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-4 border-gray-900 border-t-transparent mb-4"></div>
                     <h1 className="text-2xl font-bold">Loading...</h1>
                 </main>
             }>
