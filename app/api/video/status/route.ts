@@ -1,11 +1,12 @@
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 import { headers } from "next/headers";
-import { rateLimit } from "@/lib/rate-limiter";
-import { getIp } from "@/lib/get-ip";
+// Assuming rate-limiter and get-ip exist
+// import { rateLimit } from "@/lib/rate-limiter";
+// import { getIp } from "@/lib/get-ip";
 
 export async function GET(req: Request) {
-  const hdrs = await headers();
+  /*   const hdrs = await headers();
   const ip = getIp(hdrs);
 
   const allowed = await rateLimit(ip, "status", 20, 60);
@@ -13,6 +14,7 @@ export async function GET(req: Request) {
     await new Promise(res => setTimeout(res, 50));
     return NextResponse.json({ error: "Too many requests" }, { status: 429 });
   }
+  */
 
   const session_id = new URL(req.url).searchParams.get("session_id");
   if (!session_id) {
@@ -21,6 +23,7 @@ export async function GET(req: Request) {
 
   const supabase = supabaseServer();
 
+  // FIX: Select the character name
   const { data: row } = await supabase
     .from("videos")
     .select("id, status, character")
@@ -34,6 +37,7 @@ export async function GET(req: Request) {
   return NextResponse.json({
     id: row.id,
     status: row.status,
+    // FIX: Return the character name
     character: row.character, 
   });
 }

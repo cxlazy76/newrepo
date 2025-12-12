@@ -1,4 +1,3 @@
-// stream route ts (with added logging for debugging)
 import { NextResponse } from "next/server";
 import { supabaseServer } from "@/lib/supabaseServer";
 
@@ -8,57 +7,47 @@ const UUID_REGEX =
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const videoId = url.searchParams.get("id");
+  // FIX: Retrieve the desired filename for Content-Disposition
   const filename = url.searchParams.get("filename"); 
   
   if (!videoId || !UUID_REGEX.test(videoId)) {
-    console.error("Invalid video ID format or missing.");
     return NextResponse.json({ error: "Invalid video ID" }, { status: 404 });
   }
 
   const supabase = supabaseServer();
   
   // 1. Fetch the video record to get the storage path
-  const { data: row, error: dbError } = await supabase
+  const { data: row } = await supabase
     .from("videos")
     .select("video_url, status")
     .eq("id", videoId)
     .single();
-  
-  if (dbError || !row || row.status !== "finished" || !row.video_url) {
-    console.error("DB Lookup Failed or Video not ready. ID:", videoId, "Error:", dbError, "Row:", row);
+
+  if (!row || row.status !== "finished" || !row.video_url) {
     return NextResponse.json({ error: "Video file not found or still processing" }, { status: 404 });
   }
-  
-  // **DEBUG LOGGING ADDED HERE**
-  console.log("Video ID found. Storage Path in DB:", row.video_url);
 
-  // 2. Generate a fresh signed URL
+  // 2. Generate a fresh signed URL 
   const signedUrlTTL = 3600; 
 
   const { data: signedData, error: signedError } = await supabase.storage
-    .from("videos") // **CRUCIAL: Ensure this is the correct bucket name, e.g., 'videos'**
+    .from("videos")
     .createSignedUrl(row.video_url, signedUrlTTL);
 
   if (signedError || !signedData?.signedUrl) {
-    // **DEBUG LOGGING ADDED HERE**
-    console.error("Signed URL generation failed. Path used:", row.video_url, "Error:", signedError);
     return NextResponse.json({ error: "Could not generate signed URL" }, { status: 500 });
   }
 
-  // **DEBUG LOGGING ADDED HERE**
-  console.log("Signed URL generated successfully. Attempting to fetch...");
-  
   // 3. Proxy the request, forwarding the crucial Range header
-  // ... (rest of the proxy logic remains the same)
-  
   const proxyHeaders = new Headers();
   const clientHeaders = req.headers;
 
+  // FIX: Forward Range header for video seeking/streaming
   if (clientHeaders.has('range')) {
     proxyHeaders.set('Range', clientHeaders.get('range') as string);
   }
   if (clientHeaders.has('accept')) {
-      proxyHeaders.set('Accept', clientHeaders.get('accept') as string);
+    proxyHeaders.set('Accept', clientHeaders.get('accept') as string);
   }
   
   const proxyRes = await fetch(signedData.signedUrl, {
@@ -66,16 +55,13 @@ export async function GET(req: Request) {
   });
 
   if (!proxyRes.ok || !proxyRes.body) {
-    // **DEBUG LOGGING ADDED HERE**
-    console.error(`Failed to stream video from storage. Status: ${proxyRes.status} URL: ${signedData.signedUrl}`);
     return NextResponse.json({ error: "Failed to stream video from storage" }, { status: 500 });
   }
 
   // 4. Return necessary streaming headers
-  // ... (rest of the successful response logic remains the same)
-
   const responseHeaders = new Headers(proxyRes.headers);
 
+  // FIX: List of crucial headers to keep for streaming
   const headersToKeep = [
     'content-type', 
     'content-length', 
@@ -92,18 +78,18 @@ export async function GET(req: Request) {
     }
   }
 
+  // FIX: Control Content-Disposition based on the presence of the 'filename' parameter
   if (filename) {
-    const isDownload = url.searchParams.has('filename');
-    
-    const contentDisposition = isDownload 
-        ? `attachment; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`
-        : finalHeaders.get('Content-Disposition') || 'inline'; 
+    // If filename is present, treat it as a download and force attachment
+    const contentDisposition = `attachment; filename="${filename}"; filename*=UTF-8''${encodeURIComponent(filename)}`;
         
     finalHeaders.set('Content-Disposition', contentDisposition);
   } else {
+    // Default to inline for streaming (video preview)
     finalHeaders.set('Content-Disposition', 'inline');
   }
   
+  // Use the original status (206 Partial Content or 200 OK)
   return new NextResponse(proxyRes.body, {
     status: proxyRes.status,
     headers: finalHeaders,

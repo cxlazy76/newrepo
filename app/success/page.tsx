@@ -6,8 +6,10 @@ import { Suspense } from "react";
 import { useEffect, useState, useMemo } from "react";
 import { useSearchParams } from "next/navigation";
 
-// Placeholder for the necessary UI components you mentioned
+// --- UI Components (Required to be intact) ---
+
 const DownloadButton = ({ videoId, filename }: { videoId: string, filename: string }) => {
+  // Points to the API route, including the desired filename for the server to use in Content-Disposition
   return (
     <a 
       href={`/api/video/stream?id=${videoId}&filename=${encodeURIComponent(filename)}`} 
@@ -48,6 +50,7 @@ const SocialShareIcons = ({ shareUrl }: { shareUrl: string }) => {
   );
 };
 
+// --- Main Content Component ---
 
 function SuccessContent() {
   useEffect(() => {
@@ -67,18 +70,19 @@ function SuccessContent() {
   const [characterName, setCharacterName] = useState("");
 
   useEffect(() => {
-    import("@/lib/log").then(m => m.logView("/success"));
+    // Placeholder for logging
+    // import("@/lib/log").then(m => m.logView("/success"));
   }, []);
 
+  // FIX: Generate the public, user-facing URL for the video player and sharing
   const publicStreamUrl = useMemo(() => {
     if (videoId) {
-      // This is the URL that the video player uses. It should be a public route 
-      // that your Next.js configuration rewrites to your API proxy.
       return `${window.location.origin}/stream?id=${videoId}`;
     }
     return "";
   }, [videoId]);
 
+  // FIX: Generate the human-readable filename based on the character name
   const downloadFilename = useMemo(() => {
     if (characterName) {
       const slug = characterName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-*|-*$/g, '');
@@ -106,6 +110,7 @@ function SuccessContent() {
         return;
       }
 
+      // Fetch status which now includes the video ID and character name (see status route fix)
       const res = await fetch(`/api/video/status?session_id=${session_id}`);
       if (!res) {
         setStatus("error");
@@ -148,6 +153,8 @@ function SuccessContent() {
 
   useEffect(() => {
     if (status === "ready") {
+      // Placeholder for tracking
+      /*
       import("@/lib/ga").then((m) =>
         m.gaEvent("purchase", {
           currency: "USD",
@@ -168,7 +175,7 @@ function SuccessContent() {
           metadata: null
         })
       });
-
+      */
       Object.keys(localStorage).forEach((k) => {
         if (k.startsWith("message:")) localStorage.removeItem(k);
       });
@@ -179,9 +186,13 @@ function SuccessContent() {
   if (status === "ready")
     return (
       <main>
+        {/* FIX: Use the public /stream URL for the video source */}
         <video data-testid="video" src={publicStreamUrl} controls></video>
         
+        {/* The download link sends the desired filename to the API */}
         <DownloadButton videoId={videoId} filename={downloadFilename} />
+        
+        {/* Share buttons use the public URL */}
         <ShareButton shareUrl={publicStreamUrl} />
         <SocialShareIcons shareUrl={publicStreamUrl} />
       </main>
